@@ -20,6 +20,13 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                    *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+#if defined(__linux__)
+#  define _DEFAULT_SOURCE
+#  include <sys/ioctl.h>
+#  include <termios.h>
+#  include <unistd.h>
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -33,15 +40,11 @@ typedef unsigned char bool;
 #  define true  1
 #endif
 
-#if defined(__linux__)
-#  include <termios.h>
-#endif
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                              Global constants                             *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#if USE_ASCII_SYMBOLS
+#if defined(__linux__)
 #  define  DEAD_CELL   ' '
 #  define ALIVE_CELL   '#'
 #  define  DEAD_CURSOR '.'
@@ -113,10 +116,9 @@ typedef unsigned char bool;
 } while (0)
 
 #define strlitlen(literal) (sizeof(literal) - 1)
-#define   shift_arg()      (--argc, *argv++)
-#define unshift_arg()      (++argc, --argv)
-#define mod(n, d)          (((n) % (d) + (d)) % (d))
-#define min(a, b)          ((a) < (b) ? (a) : (b))
+#define   shift_arg() (--argc, *argv++)
+#define unshift_arg() (++argc, --argv)
+#define min(a, b)     ((a) < (b) ? (a) : (b))
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                                Help message                               *
@@ -341,6 +343,9 @@ typedef enum {
     MODE_TEMPLATE_BUF
 } mode_action_t;
 
+size_t prev_size_t(size_t value, ulong len);
+size_t next_size_t(size_t value, ulong len);
+
 ulong parse_rule(const char* str);
 void normalization_rule(char* rule);
 template_t parse_rle(const char* rle);
@@ -362,7 +367,9 @@ bool is_symbol_received(void);
 int received_symbol(void);
 
 #if defined(__linux__)
-static struct termios original_termios;
+static struct termios orig_termios;
+static struct termios  new_termios;
+static int peek_char = -1;
 
 void setup_terminal(void);
 #endif
@@ -399,11 +406,6 @@ int main(int argc, char** argv) {
     bool  width_is_set = false;
     bool height_is_set = false;
     bool indent_is_set = false;
-
-    /* Setup terminal for using in Linux */
-#if defined(__linux__)
-    setup_terminal();
-#endif
 
     (void)shift_arg(); /* skip program name */
 
@@ -523,6 +525,11 @@ int main(int argc, char** argv) {
     if (!field_snd || !field_snd)
         error_msg("couldn't allocate memory");
 
+    /* Setup terminal for using in Linux */
+#if defined(__linux__)
+    setup_terminal();
+#endif
+
     fputs(ESC"?25l", stdout); /* hide cursor */
 
     /* Drawing border and information on screen */
@@ -569,10 +576,10 @@ restart:
                 for (j = 0; j < width; j++) {
                     ulong bit, cnt = 0;
 
-                    size_t iu = mod((ptrdiff_t)i - 1, height);
-                    size_t id = mod((ptrdiff_t)i + 1, height);
-                    size_t jl = mod((ptrdiff_t)j - 1, width );
-                    size_t jr = mod((ptrdiff_t)j + 1, width );
+                    size_t iu = prev_size_t(i, height);
+                    size_t id = next_size_t(i, height);
+                    size_t jl = prev_size_t(j, width);
+                    size_t jr = next_size_t(j, width);
 
                     cnt += FSTF(iu, jl) == ALIVE_CELL;
                     cnt += FSTF(iu, j ) == ALIVE_CELL;
@@ -764,6 +771,14 @@ error:
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                      Implementation support functions                     *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+size_t prev_size_t(size_t value, ulong len) {
+    if (value == 0) return len - 1; else return value - 1;
+}
+
+size_t next_size_t(size_t value, ulong len) {
+    if (value == len - 1) return 0; else return value + 1;
+}
 
 ulong parse_rule(const char* str) {
     ulong mask = 0, digit;
@@ -983,25 +998,22 @@ bool is_symbol_received(void) { return kbhit(); }
 int received_symbol(void) { return getch(); }
 
 #elif defined(__linux__)
-
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <sys/select.h>
-
-/* Terminal setup: https://stackoverflow.com/a/448982 */
+/* Terminal setup: https://stackoverflow.com/a/63708756 */
 
 void reset_terminal(void) {
-    tcsetattr(0, TCSANOW, &original_termios);
+    tcsetattr(0, TCSANOW, &orig_termios);
 }
 
 void setup_terminal(void) {
-    struct termios new_termios;
-
-    tcgetattr(0, &original_termios);
-    memcpy(&new_termios, &original_termios, sizeof(new_termios));
-
     atexit(reset_terminal);
-    cfmakeraw(&new_termios);
+
+    tcgetattr(0, &orig_termios);
+    new_termios = orig_termios;
+    new_termios.c_lflag &= ~ICANON;
+    new_termios.c_lflag &= ~ECHO;
+    new_termios.c_lflag &= ~ISIG;
+    new_termios.c_cc[VMIN] = 1;
+    new_termios.c_cc[VTIME] = 0;
     tcsetattr(0, TCSANOW, &new_termios);
 }
 
@@ -1018,19 +1030,31 @@ bool get_console_size(ulong* width, ulong* height) {
 void sleep_ms(ulong ms) { usleep(ms * 1000); }
 
 bool is_symbol_received(void) {
-    struct timeval tv = { 0L, 0L };
-    fd_set fds;
-    FD_ZERO(&fds);
-    FD_SET(0, &fds);
-    return select(1, &fds, NULL, NULL, &tv) > 0;
+    int n; unsigned char ch;
+
+    if (peek_char >= 0) return true;
+
+    new_termios.c_cc[VMIN] = 0;
+    tcsetattr(0, TCSANOW, &new_termios);
+    n = read(0, &ch, 1);
+    new_termios.c_cc[VMIN] = 1;
+    tcsetattr(0, TCSANOW, &new_termios);
+
+    if (n == 1) {
+        peek_char = ch;
+        return true;
+    } else
+        return false;
 }
 
 int received_symbol(void) {
-    int r; unsigned char c;
-    if ((r = read(0, &c, sizeof(c))) < 0)
-        return r;
-    else
-        return c;
+    char ch;
+    if (peek_char >= 0) {
+        ch = peek_char;
+        peek_char = -1;
+    } else
+        read(0, &ch, 1);
+    return ch;
 }
 
 #else
