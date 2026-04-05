@@ -72,10 +72,10 @@ typedef unsigned char bool;
 #  define RVER_BAR     "\xcc"
 #endif
 
-#define MINIMUM_FIELD_WIDTH  23
-#define MINIMUM_FIELD_HEIGHT 1
-#define MAXIMUM_FIELD_WIDTH  1000
-#define MAXIMUM_FIELD_HEIGHT 1000
+#define MIN_FIELD_WIDTH  23
+#define MIN_FIELD_HEIGHT 1
+#define MAX_FIELD_WIDTH  1000
+#define MAX_FIELD_HEIGHT 1000
 
 #define DEFAULT_RULE   "B3/S23"
 #define DEFAULT_PROB   0.5
@@ -285,7 +285,7 @@ typedef unsigned char bool;
  *                Static asserts for checking constant values                *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-static_assert(strlitlen(HOR_BAR_LINE) == 2 * MINIMUM_FIELD_WIDTH);
+static_assert(strlitlen(HOR_BAR_LINE) == 2 * MIN_FIELD_WIDTH);
 
 static_assert(strlitlen(MODE_TXT_SIMULATION  ) + 6 <= strlitlen(HOR_BAR_LINE));
 static_assert(strlitlen(MODE_TXT_PAUSE       ) + 6 <= strlitlen(HOR_BAR_LINE));
@@ -295,8 +295,8 @@ static_assert(strlitlen(MODE_TXT_TEMPLATE    ) + 4 <= strlitlen(HOR_BAR_LINE));
 static_assert(strlitlen(MODE_TXT_TEMPLATE_BUF) + 6 <= strlitlen(HOR_BAR_LINE));
 
 static_assert(strlitlen(DEFAULT_RULE) <= MAX_RULE_LENGTH);
-static_assert(MINIMUM_FIELD_WIDTH  <= DEFAULT_WIDTH  && DEFAULT_WIDTH  <= MAXIMUM_FIELD_WIDTH );
-static_assert(MINIMUM_FIELD_HEIGHT <= DEFAULT_HEIGHT && DEFAULT_HEIGHT <= MAXIMUM_FIELD_HEIGHT);
+static_assert(MIN_FIELD_WIDTH  <= DEFAULT_WIDTH  && DEFAULT_WIDTH  <= MAX_FIELD_WIDTH );
+static_assert(MIN_FIELD_HEIGHT <= DEFAULT_HEIGHT && DEFAULT_HEIGHT <= MAX_FIELD_HEIGHT);
 static_assert(DEFAULT_INDENT <= DEFAULT_WIDTH  / 2);
 static_assert(DEFAULT_INDENT <= DEFAULT_HEIGHT / 2);
 
@@ -442,9 +442,9 @@ int main(int argc, char** argv) {
                 error_msg("couldn't get console size");
             width = width / 2 - 1;
             height = height - 2;
-            if (width  < MINIMUM_FIELD_WIDTH  || width  > MAXIMUM_FIELD_WIDTH )
+            if (width < MIN_FIELD_WIDTH || width > MAX_FIELD_WIDTH)
                 error_msg("incorrect value for width");
-            if (height < MINIMUM_FIELD_HEIGHT || height > MAXIMUM_FIELD_HEIGHT)
+            if (height < MIN_FIELD_HEIGHT || height > MAX_FIELD_HEIGHT)
                 error_msg("incorrect value for height");
 
             unshift_arg();
@@ -471,7 +471,7 @@ int main(int argc, char** argv) {
             width_is_set = true;
 
             width = strtoul(arg, &end, 10);
-            if (*end != '\0' || width  < MINIMUM_FIELD_WIDTH  || width  > MAXIMUM_FIELD_WIDTH )
+            if (*end != '\0' || width < MIN_FIELD_WIDTH || width > MAX_FIELD_WIDTH)
                 error_msg("incorrect value for width");
         } else if (strcmp(opt, "-h") == 0 || strcmp(opt, "--height") == 0) {
             if (!arg) error_msg("not enough arguments for option");
@@ -479,7 +479,7 @@ int main(int argc, char** argv) {
             height_is_set = true;
 
             height = strtoul(arg, &end, 10);
-            if (*end != '\0' || height < MINIMUM_FIELD_HEIGHT || height > MAXIMUM_FIELD_HEIGHT)
+            if (*end != '\0' || height < MIN_FIELD_HEIGHT || height > MAX_FIELD_HEIGHT)
                 error_msg("incorrect value for height");
         } else if (strcmp(opt, "-i") == 0 || strcmp(opt, "--indent") == 0) {
             if (!arg) error_msg("not enough arguments for option");
@@ -844,9 +844,9 @@ template_t parse_rle(const char* rle) {
     new.height = strtoul(end + 1, &end, 10);
     if (*end != ':') error_msgf("unexpected character '%c' after height", *end);
 
-    if (new.width  == 0 || new.width  > MAXIMUM_FIELD_WIDTH )
+    if (new.width  == 0 || new.width > MAX_FIELD_WIDTH)
         error_msg("incorrect value for template width");
-    if (new.height == 0 || new.height > MAXIMUM_FIELD_HEIGHT)
+    if (new.height == 0 || new.height > MAX_FIELD_HEIGHT)
         error_msg("incorrect value for template height");
 
     new.array = malloc(new.width * new.height);
@@ -899,16 +899,16 @@ void draw_border(ulong w, ulong h) {
     fputs(ESC"2J", stdout); /* clear screen */
 
     fputs(LU_CORNER, stdout);
-    for (i = w; i > 0; i -= min(i, MINIMUM_FIELD_WIDTH))
-        fwrite(HOR_BAR_LINE, min(i, MINIMUM_FIELD_WIDTH), 1, stdout);
+    for (i = w; i > 0; i -= min(i, MIN_FIELD_WIDTH))
+        fwrite(HOR_BAR_LINE, min(i, MIN_FIELD_WIDTH), 1, stdout);
     fputs(RU_CORNER"\n", stdout);
 
     for (i = 0; i < h; i++)
         printf(VER_BAR ESC"%luC" VER_BAR "\n", w);
 
     fputs(LD_CORNER, stdout);
-    for (i = w; i > 0; i -= min(i, MINIMUM_FIELD_WIDTH))
-        fwrite(HOR_BAR_LINE, min(i, MINIMUM_FIELD_WIDTH), 1, stdout);
+    for (i = w; i > 0; i -= min(i, MIN_FIELD_WIDTH))
+        fwrite(HOR_BAR_LINE, min(i, MIN_FIELD_WIDTH), 1, stdout);
     fputs(RD_CORNER, stdout);
 }
 
