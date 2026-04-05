@@ -45,10 +45,10 @@ typedef unsigned char bool;
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #if defined(__linux__)
-#  define  DEAD_CELL   ' '
-#  define ALIVE_CELL   '#'
-#  define  DEAD_CURSOR '.'
-#  define ALIVE_CURSOR '%'
+#  define  DEAD_CELL   "  "
+#  define ALIVE_CELL   "##"
+#  define  DEAD_CURSOR ".."
+#  define ALIVE_CURSOR "%%"
 #  define LU_CORNER    "+"
 #  define RU_CORNER    "+"
 #  define LD_CORNER    "+"
@@ -79,6 +79,7 @@ typedef unsigned char bool;
 
 #define DEFAULT_RULE   "B3/S23"
 #define DEFAULT_PROB   0.5
+#define DEFAULT_GENS   2
 #define DEFAULT_WIDTH  50
 #define DEFAULT_HEIGHT 25
 #define DEFAULT_INDENT 0
@@ -315,11 +316,12 @@ static_assert(DEFAULT_INDENT <= DEFAULT_HEIGHT / 2);
 
 #define ESC "\x1b["
 
+typedef unsigned char uchar;
 typedef unsigned long ulong;
 
 typedef struct {
-    bool* array;
-    ulong width;
+    uchar* array;
+    ulong  width;
     ulong height;
 } template_t;
 
@@ -343,19 +345,22 @@ typedef enum {
     MODE_TEMPLATE_BUF
 } mode_action_t;
 
+float randf0t1(void);
+uchar randrange(uchar max);
+
 size_t prev_size_t(size_t value, ulong len);
 size_t next_size_t(size_t value, ulong len);
 
-ulong parse_rule(const char* str);
 void normalization_rule(char* rule);
-template_t parse_rle(const char* rle);
+ulong parse_rule(const char* str, uchar* gens);
+template_t parse_rle(const char* rle, uchar gens);
 
 void draw_border(ulong w, ulong h);
 
-void move_to_up   (char* field, size_t width, size_t heigth);
-void move_to_down (char* field, size_t width, size_t heigth);
-void move_to_left (char* field, size_t width, size_t heigth);
-void move_to_right(char* field, size_t width, size_t heigth);
+void move_to_up   (uchar* field, size_t width, size_t heigth);
+void move_to_down (uchar* field, size_t width, size_t heigth);
+void move_to_left (uchar* field, size_t width, size_t heigth);
+void move_to_right(uchar* field, size_t width, size_t heigth);
 
 void flip_horizontally(template_t* tmpl);
 void flip_vertically  (template_t* tmpl);
@@ -380,7 +385,7 @@ int main(int argc, char** argv) {
     /* Parameters of simulation */
     ulong width, height, indent, bsmask;
     char rule[MAX_RULE_LENGTH + 1];
-    float prob;
+    float prob; uchar gens;
 
     /* Coordinates */
     ulong cursor_x = 0, cursor_y = 0;
@@ -393,12 +398,10 @@ int main(int argc, char** argv) {
     template_t template_slots[COUNT_TEMPLATE_SLOT] = {0};
 
     /* arrays with current and next field */
-    char* field_fst = NULL;
-    char* field_snd = NULL;
-#define FSTF( i, j) field_fst[2 * width * (i) + 2 * (j)    ]
-#define SNDF( i, j) field_snd[2 * width * (i) + 2 * (j)    ]
-#define FSTFo(i, j) field_fst[2 * width * (i) + 2 * (j) + 1]
-#define SNDFo(i, j) field_snd[2 * width * (i) + 2 * (j) + 1]
+    uchar* field_fst = NULL;
+    uchar* field_snd = NULL;
+#define FSTF(i, j) field_fst[width * (i) + (j)]
+#define SNDF(i, j) field_snd[width * (i) + (j)]
 
     /* Flag parsed options */
     bool   rule_is_set = false;
@@ -453,7 +456,7 @@ int main(int argc, char** argv) {
             if (rule_is_set) error_msg("rule value has already been set");
             rule_is_set = true;
 
-            bsmask = parse_rule(arg);
+            bsmask = parse_rule(arg, &gens);
             if (bsmask == INVALID_BS_MASK) goto error;
             strcpy(rule, arg);
             normalization_rule(rule);
@@ -504,7 +507,7 @@ int main(int argc, char** argv) {
     if (!height_is_set) height = DEFAULT_HEIGHT;
     if (!indent_is_set) indent = DEFAULT_INDENT;
     if (!  rule_is_set) {
-        bsmask = parse_rule(DEFAULT_RULE);
+        bsmask = parse_rule(DEFAULT_RULE, &gens);
         strcpy(rule, DEFAULT_RULE);
     }
 
@@ -515,13 +518,13 @@ int main(int argc, char** argv) {
     /* Convert RLE string to template */
     for (i = 0; i < COUNT_TEMPLATE_SLOT; i++) {
         if (!template_slots[i].array) continue;
-        template_slots[i] = parse_rle((void*)template_slots[i].array);
+        template_slots[i] = parse_rle((void*)template_slots[i].array, gens);
         if (!template_slots[i].array) goto error;
     }
 
     /* Allocation memory for fields */
-    field_fst = malloc(2 * width *  height     );
-    field_snd = malloc(2 * width * (height + 1)); /* additional line for moving field */
+    field_fst = malloc(width *  height     );
+    field_snd = malloc(width * (height + 1)); /* additional line for moving field */
     if (!field_snd || !field_snd)
         error_msg("couldn't allocate memory");
 
@@ -540,38 +543,53 @@ int main(int argc, char** argv) {
     srand(time(NULL));
 restart:
     /* Initialization of fields */
-    memset(field_fst, DEAD_CELL, 2 * width * height);
-    memset(field_snd, DEAD_CELL, 2 * width * height);
+    memset(field_fst, 0, width * height);
+    memset(field_snd, 0, width * height);
     for (i = indent; i < height - indent; i++)
     for (j = indent; j < width  - indent; j++)
-        FSTF(i, j) = FSTFo(i, j) = SNDF(i, j) = SNDFo(i, j) =
-            (float)rand() / (float)RAND_MAX < prob ? ALIVE_CELL : DEAD_CELL;
+        FSTF(i, j) = SNDF(i, j) = randf0t1() < prob ? randrange(gens - 1) + 1 : 0;
 
     /* Main program loop */
     while (true) {
         fputs(ESC"2;2H", stdout); /* move to left-up cell */
 
-        /* Drawing selection for cursor and rectangle */
-        /**/ if (mode == MODE_CURSOR)
-            FSTF(cursor_y, cursor_x) = FSTFo(cursor_y, cursor_x) =
-                FSTF(cursor_y, cursor_x) == ALIVE_CELL ? ALIVE_CURSOR : DEAD_CURSOR;
-        else if (mode == MODE_RECTANGLE)
-            for (i = rect_y; i <= cursor_y; i++)
-            for (j = rect_x; j <= cursor_x; j++)
-                FSTF(i, j) = FSTFo(i, j) = FSTF(i, j) == ALIVE_CELL ? ALIVE_CURSOR : DEAD_CURSOR;
-
-        /* Drawing template */
-        if (MODE_TEMPLATE_1 <= mode && mode <= MODE_TEMPLATE_BUF) {
-            template_t slot = template_slots[mode - MODE_TEMPLATE_1];
-            for (i = cursor_y; i < cursor_y + slot.height; i++)
-            for (j = cursor_x; j < cursor_x + slot. width; j++)
-                FSTF(i, j) = slot.array[slot.width * (i - cursor_y) + (j - cursor_x)]
-                    ? ALIVE_CURSOR : DEAD_CURSOR;
-        }
-
         /* Drawing and calculation loop */
         for (i = 0; i < height; i++) {
-            printf("%.*s" ESC"2G" ESC"1B", (int)width * 2, field_fst + 2 * width * i);
+            for (j = 0; j < width; j++) switch(mode) {
+                case MODE_SIMULATION: case MODE_PAUSE: case MODE_ONESTEP:
+                    fputs(FSTF(i, j) > 0 ? ALIVE_CELL : DEAD_CELL, stdout);
+                    break;
+
+                case MODE_CURSOR:
+                    if (cursor_x == j && cursor_y == i)
+                        fputs(FSTF(i, j) > 0 ? ALIVE_CURSOR : DEAD_CURSOR, stdout);
+                    else
+                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL : DEAD_CELL, stdout);
+                    break;
+
+                case MODE_RECTANGLE:
+                    if (rect_x <= j && j <= cursor_x && rect_y <= i && i <= cursor_y)
+                        fputs(FSTF(i, j) > 0 ? ALIVE_CURSOR : DEAD_CURSOR, stdout);
+                    else
+                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL : DEAD_CELL, stdout);
+                    break;
+
+                case MODE_TEMPLATE_1: case MODE_TEMPLATE_2: case MODE_TEMPLATE_3:
+                case MODE_TEMPLATE_4: case MODE_TEMPLATE_5: case MODE_TEMPLATE_6:
+                case MODE_TEMPLATE_7: case MODE_TEMPLATE_8: case MODE_TEMPLATE_9:
+                case MODE_TEMPLATE_BUF: {
+                    template_t* slot = template_slots + mode - MODE_TEMPLATE_1;
+                    if (cursor_x <= j && j < cursor_x + slot->width &&
+                        cursor_y <= i && i < cursor_y + slot->height) {
+                        putchar(slot->array[slot->width * (i - cursor_y) + (j - cursor_x)]
+                            ? *ALIVE_CURSOR : *DEAD_CURSOR);
+                        putchar(FSTF(i, j) > 0 ? *ALIVE_CELL : *DEAD_CELL);
+                    } else
+                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL : DEAD_CELL, stdout);
+                } break;
+            }
+            fputs(ESC"2G" ESC"1B", stdout);
+
             if (mode == MODE_SIMULATION || mode == MODE_ONESTEP)
                 for (j = 0; j < width; j++) {
                     ulong bit, cnt = 0;
@@ -581,18 +599,13 @@ restart:
                     size_t jl = prev_size_t(j, width);
                     size_t jr = next_size_t(j, width);
 
-                    cnt += FSTF(iu, jl) == ALIVE_CELL;
-                    cnt += FSTF(iu, j ) == ALIVE_CELL;
-                    cnt += FSTF(iu, jr) == ALIVE_CELL;
-                    cnt += FSTF(i , jl) == ALIVE_CELL;
-                    cnt += FSTF(i , jr) == ALIVE_CELL;
-                    cnt += FSTF(id, jl) == ALIVE_CELL;
-                    cnt += FSTF(id, j ) == ALIVE_CELL;
-                    cnt += FSTF(id, jr) == ALIVE_CELL;
+                    cnt += FSTF(iu, jl) == gens; cnt += FSTF(iu, j) == gens; cnt += FSTF(iu, jr) == gens;
+                    cnt += FSTF(i , jl) == gens;                             cnt += FSTF(i , jr) == gens;
+                    cnt += FSTF(id, jl) == gens; cnt += FSTF(id, j) == gens; cnt += FSTF(id, jr) == gens;
 
-                    bit = 1ul << cnt; if (FSTF(i, j) == ALIVE_CELL) bit <<= 9;
+                    bit = 1ul << cnt; if (FSTF(i, j) == gens) bit <<= 9;
 
-                    SNDF(i, j) = SNDFo(i, j) = bit & bsmask ? ALIVE_CELL : DEAD_CELL;
+                    SNDF(i, j) = (bit & bsmask) > 0;
                 }
         }
         if (mode == MODE_ONESTEP) mode = MODE_PAUSE;
@@ -620,12 +633,12 @@ restart:
                 common_SIM_and_PAUSE:
                     switch (key) {
                         case 'r': goto restart;
-                        case 'w': move_to_up   (field_snd, width * 2, height); break;
-                        case 's': move_to_down (field_snd, width * 2, height); break;
-                        case 'a': move_to_left (field_snd, width * 2, height); break;
-                        case 'd': move_to_right(field_snd, width * 2, height); break;
+                        case 'w': move_to_up   (field_snd, width, height); break;
+                        case 's': move_to_down (field_snd, width, height); break;
+                        case 'a': move_to_left (field_snd, width, height); break;
+                        case 'd': move_to_right(field_snd, width, height); break;
                         case 'e': {
-                            memcpy(field_snd, field_fst, 2 * width * height);
+                            memcpy(field_snd, field_fst, width * height);
                             cursor_x = width  / 2;
                             cursor_y = height / 2;
                             rect_x = rect_y = 0;
@@ -652,10 +665,9 @@ restart:
 
                     else if (key == 'r') { mode = MODE_RECTANGLE; rect_x = cursor_x; rect_y = cursor_y; }
 
-                    else if (key == 'g') SNDF(cursor_y, cursor_x) = SNDFo(cursor_y, cursor_x) = DEAD_CELL;
-                    else if (key == 'b') SNDF(cursor_y, cursor_x) = SNDFo(cursor_y, cursor_x) = ALIVE_CELL;
-                    else if (key == 't') SNDF(cursor_y, cursor_x) = SNDFo(cursor_y, cursor_x) =
-                        SNDF(cursor_y, cursor_x) == ALIVE_CELL ? DEAD_CELL : ALIVE_CELL;
+                    else if (key == 'g') SNDF(cursor_y, cursor_x) = 0;
+                    else if (key == 'b') SNDF(cursor_y, cursor_x) = gens;
+                    else if (key == 't') SNDF(cursor_y, cursor_x) = gens - SNDF(cursor_y, cursor_x);
 
                     goto common_CUR_and_RECT;
                 case MODE_RECTANGLE:
@@ -664,30 +676,29 @@ restart:
                     else if (key == 'g')
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
-                            SNDF(i, j) = SNDFo(i, j) = DEAD_CELL;
+                            SNDF(i, j) = 0;
                     else if (key == 'b')
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
-                            SNDF(i, j) = SNDFo(i, j) = ALIVE_CELL;
+                            SNDF(i, j) = gens;
                     else if (key == 't')
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
-                            SNDF(i, j) = SNDFo(i, j) = SNDF(i, j) == ALIVE_CELL ? DEAD_CELL : ALIVE_CELL;
+                            SNDF(i, j) = gens - SNDF(i, j);
 
                     else if (key == 'c' || key == 'x') {
                         size_t rect_w = cursor_x - rect_x + 1;
                         size_t rect_h = cursor_y - rect_y + 1;
                         template_t* slot = template_slots + 9;
-                        bool* newptr = realloc(slot->array, rect_w * rect_h);
+                        uchar* newptr = realloc(slot->array, rect_w * rect_h);
                         if (newptr) {
                             slot->array = newptr;
                             slot->width  = rect_w;
                             slot->height = rect_h;
                             for (i = rect_y; i <= cursor_y; i++)
                             for (j = rect_x; j <= cursor_x; j++) {
-                                slot->array[slot->width * (i - rect_y) + (j - rect_x)] =
-                                    SNDF(i, j) == ALIVE_CELL;
-                                if (key == 'x') SNDF(i, j) = SNDFo(i, j) = DEAD_CELL;
+                                slot->array[slot->width * (i - rect_y) + (j - rect_x)] = SNDF(i, j);
+                                if (key == 'x') SNDF(i, j) = 0;
                             }
                         }
                     }
@@ -706,8 +717,8 @@ restart:
                         case 'D': if (cursor_x < width  - 10 ) { cursor_x += 10; } break;
 
                         case 'C':
-                            memset(field_fst, DEAD_CELL, 2 * width * height);
-                            memset(field_snd, DEAD_CELL, 2 * width * height);
+                            memset(field_fst, 0, width * height);
+                            memset(field_snd, 0, width * height);
                             break;
 
                         case 'e': mode = MODE_PAUSE; PUT_BAR_PAUSE; break;
@@ -735,14 +746,13 @@ restart:
                         case 'p':
                             for (i = cursor_y; i < cursor_y + slot->height; i++)
                             for (j = cursor_x; j < cursor_x + slot-> width; j++)
-                                SNDF(i, j) = SNDFo(i, j) =
-                                    slot->array[slot->width * (i - cursor_y) + (j - cursor_x)] ? ALIVE_CELL : DEAD_CELL;
+                                SNDF(i, j) = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
                             break;
                         case 'o':
                             for (i = cursor_y; i < cursor_y + slot->height; i++)
                             for (j = cursor_x; j < cursor_x + slot-> width; j++)
-                                if (slot->array[slot->width * (i - cursor_y) + (j - cursor_x)])
-                                    SNDF(i, j) = SNDFo(i, j) = ALIVE_CELL;
+                                if (slot->array[slot->width * (i - cursor_y) + (j - cursor_x)] > 0)
+                                    SNDF(i, j) = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
                             break;
 
                         case 'e': mode = MODE_CURSOR; PUT_BAR_CURSOR; break;
@@ -752,7 +762,7 @@ restart:
         }
 
         /* Update current field */
-        memcpy(field_fst, field_snd, 2 * width * height);
+        memcpy(field_fst, field_snd, width * height);
         fflush(stdout); sleep_ms(DELAY_IN_MILLISECOND);
     }
 
@@ -772,6 +782,10 @@ error:
  *                      Implementation support functions                     *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+float randf0t1(void) { return (float)rand() / (float)RAND_MAX; }
+
+uchar randrange(uchar max) { return rand() % (max + 1); }
+
 size_t prev_size_t(size_t value, ulong len) {
     if (value == 0) return len - 1; else return value - 1;
 }
@@ -780,7 +794,7 @@ size_t next_size_t(size_t value, ulong len) {
     if (value == len - 1) return 0; else return value + 1;
 }
 
-ulong parse_rule(const char* str) {
+ulong parse_rule(const char* str, uchar* gens) {
     ulong mask = 0, digit;
 
     /* Parsing birth digits */
@@ -815,6 +829,8 @@ ulong parse_rule(const char* str) {
         mask |= 1ul << (digit + 9);
     }
 
+    *gens = DEFAULT_GENS - 1;
+
     return mask;
 error:
     return INVALID_BS_MASK;
@@ -835,7 +851,7 @@ void normalization_rule(char* rule) {
     qsort(ptr, strlen(ptr), 1, char_cmp);
 }
 
-template_t parse_rle(const char* rle) {
+template_t parse_rle(const char* rle, uchar gens) {
     template_t new = {0}; char* end;
     ulong x = 0, y = 0;
 
@@ -866,7 +882,7 @@ template_t parse_rle(const char* rle) {
                 if (x + len > new.width)
                     error_msg("the tag count is too high");
                 while (len --> 0)
-                    new.array[new.width * y + (x++)] = *rle == 'o';
+                    new.array[new.width * y + (x++)] = *rle == 'o' ? gens : 0;
             break;
 
             case '$':
@@ -912,49 +928,47 @@ void draw_border(ulong w, ulong h) {
     fputs(RD_CORNER, stdout);
 }
 
-void move_to_up(char* field, size_t width, size_t heigth) {
+void move_to_up(uchar* field, size_t width, size_t heigth) {
     memmove(field + width, field, width * heigth);
     memcpy(field, field + width * heigth, width);
 }
 
-void move_to_down(char* field, size_t width, size_t heigth) {
+void move_to_down(uchar* field, size_t width, size_t heigth) {
     memcpy(field + width * heigth, field, width);
     memmove(field, field + width, width * heigth);
 }
 
-void move_to_left(char* field, size_t width, size_t heigth) {
+void move_to_left(uchar* field, size_t width, size_t heigth) {
     size_t i; for (i = 0; i < heigth; i++) {
-        char right = field[width * i + width - 2];
-        memmove(field + width * i + 2, field + width * i, width - 2);
-        field[width * i + 0] =
-        field[width * i + 1] = right;
+        uchar right = field[width * i + width - 1];
+        memmove(field + width * i + 1, field + width * i, width - 1);
+        field[width * i] = right;
     }
 }
 
-void move_to_right(char* field, size_t width, size_t heigth) {
+void move_to_right(uchar* field, size_t width, size_t heigth) {
     size_t i; for (i = 0; i < heigth; i++) {
-        char left = field[width * i];
-        memmove(field + width * i, field + width * i + 2, width - 2);
-        field[width * i + width - 2] =
+        uchar left = field[width * i];
+        memmove(field + width * i, field + width * i + 1, width - 1);
         field[width * i + width - 1] = left;
     }
 }
 
 void flip_horizontally(template_t* tmpl) {
     size_t i; for (i = 0; i < tmpl->height; i++) {
-        bool* first = tmpl->array + tmpl->width * i;
-        bool* last  = tmpl->array + tmpl->width * (i + 1) - 1;
+        uchar* first = tmpl->array + tmpl->width * i;
+        uchar* last  = tmpl->array + tmpl->width * (i + 1) - 1;
         for (; first < last; first++, last--) {
-            bool t = *first; *first = *last; *last = t;
+            uchar t = *first; *first = *last; *last = t;
         }
     }
 }
 
 void flip_vertically(template_t* tmpl) {
-    bool* first = tmpl->array;
-    bool* last  = tmpl->array + tmpl->width * (tmpl->height - 1);
+    uchar* first = tmpl->array;
+    uchar* last  = tmpl->array + tmpl->width * (tmpl->height - 1);
     for (; first < last; first += tmpl->width, last -= tmpl->width) {
-        size_t i; bool t;
+        size_t i; uchar t;
         for (i = 0; i < tmpl->width; i++) {
             t = first[i]; first[i] = last[i]; last[i] = t;
         }
@@ -964,7 +978,7 @@ void flip_vertically(template_t* tmpl) {
 void rotate_by_180deg(template_t* tmpl) {
     size_t i, N = tmpl->width * tmpl->height;
     for (i = 0; i < N / 2; i++) {
-        bool t = tmpl->array[i];
+        uchar t = tmpl->array[i];
         tmpl->array[i] = tmpl->array[N - i - 1];
         tmpl->array[N - i - 1] = t;
     }
