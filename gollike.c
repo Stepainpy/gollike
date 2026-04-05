@@ -808,7 +808,7 @@ size_t next_size_t(size_t value, ulong len) {
 }
 
 ulong parse_rule(const char* str, uchar* gens) {
-    ulong mask = 0, digit;
+    ulong mask = 0, digit, number;
 
     /* Parsing birth digits */
     if (*str != 'B' && *str != 'b')
@@ -833,7 +833,7 @@ ulong parse_rule(const char* str, uchar* gens) {
         error_msgf("expected start survive number, but got '%c'", *str);
     else ++str;
 
-    for (; *str != '\0'; ++str) {
+    for (; *str != '/' && *str != '\0'; ++str) {
         if (*str < '0' || *str > '8')
             error_msgf("expected digit less than 9, but got '%c'", *str);
         digit = *str - '0';
@@ -842,7 +842,24 @@ ulong parse_rule(const char* str, uchar* gens) {
         mask |= 1ul << (digit + 9);
     }
 
-    *gens = DEFAULT_GENS - 1;
+    /* Parsing count generations */
+    if (*str != '/' && *str != '\0')
+        error_msgf("expected rule delimiter or end, but got '%c'", *str);
+    else if (*str == '/') {
+        ++str;
+        if (*str != 'G' && *str != 'g')
+            error_msgf("expected start generation count, but got '%c'", *str);
+        ++str;
+        for (number = 0; *str != '\0'; ++str) {
+            if (*str < '0' || *str > '9')
+                error_msgf("expected digit, but got '%c'", *str);
+            number = number * 10 + *str - '0';
+        }
+        if (number < 2 || number > 256)
+            error_msg("generation count too high or low");
+        *gens = number - 1;
+    } else
+        *gens = DEFAULT_GENS - 1;
 
     return mask;
 error:
