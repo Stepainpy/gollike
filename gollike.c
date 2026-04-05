@@ -382,6 +382,8 @@ static struct termios  new_termios;
 static int peek_char = -1;
 
 void setup_terminal(void);
+#else
+static char output_buffer[8 * 1024];
 #endif
 
 int main(int argc, char** argv) {
@@ -533,9 +535,11 @@ int main(int argc, char** argv) {
     if (!field_snd || !field_snd)
         error_msg("couldn't allocate memory");
 
-    /* Setup terminal for using in Linux */
+    /* Setup terminal */
 #if defined(__linux__)
     setup_terminal();
+#else
+    setvbuf(stdout, output_buffer, _IOFBF, sizeof output_buffer);
 #endif
 
     fputs(ESC"?25l", stdout); /* hide cursor */
