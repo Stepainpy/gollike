@@ -77,12 +77,12 @@ typedef unsigned char bool;
 #define  DEAD_CURSOR_BLOCK DEAD_CURSOR DEAD_CURSOR
 #define ALIVE_CURSOR_BLOCK ALIVE_CURSOR ALIVE_CURSOR
 
-#define MIN_FIELD_WIDTH  23
+#define MIN_FIELD_WIDTH  25
 #define MIN_FIELD_HEIGHT 1
 #define MAX_FIELD_WIDTH  1000
 #define MAX_FIELD_HEIGHT 1000
 
-#define DEFAULT_RULE   "B3/S23"
+#define DEFAULT_RULE   "B3/S23/G2"
 #define DEFAULT_PROB   0.5
 #define DEFAULT_GENS   2
 #define DEFAULT_WIDTH  50
@@ -94,7 +94,7 @@ typedef unsigned char bool;
 #define FRAMES_REP_SECOND    50 /* frame ~ one simulation step */
 #define DELAY_IN_MILLISECOND (1000 / FRAMES_REP_SECOND)
 
-#define MAX_RULE_LENGTH     21
+#define MAX_RULE_LENGTH     26
 #define COUNT_TEMPLATE_SLOT 10
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -258,11 +258,11 @@ typedef unsigned char bool;
     HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR \
     HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR \
     HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR \
-    HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR
+    HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR \
 
-/* Maximum width case  * * * * * * * * * * * * * * *
- * -< B012345678/S012345678 | 1000x1000/0.999 >--  *
- * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* Maximum width case  * * * * * * * * * * * * * * * * *
+ * -< B012345678/S012345678/G256 | 1000x1000/0.999 >-  *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #define INFOFMT " %s " VER_BAR " %lux%lu/%.3f "
 
 #define MODE_TXT_SIMULATION   "SIMULATION"
@@ -356,9 +356,9 @@ uchar randrange(uchar max);
 size_t prev_size_t(size_t value, ulong len);
 size_t next_size_t(size_t value, ulong len);
 
-void normalization_rule(char* rule);
 ulong parse_rule(const char* str, uchar* gens);
 template_t parse_rle(const char* rle, uchar gens);
+void normalization_rule(char* rule, ulong mask, uchar gens);
 
 void draw_border(ulong w, ulong h);
 
@@ -465,8 +465,7 @@ int main(int argc, char** argv) {
 
             bsmask = parse_rule(arg, &gens);
             if (bsmask == INVALID_BS_MASK) goto error;
-            strcpy(rule, arg);
-            normalization_rule(rule);
+            normalization_rule(rule, bsmask, gens);
         } else if (strcmp(opt, "-p") == 0 || strcmp(opt, "--probability") == 0) {
             if (!arg) error_msg("not enough arguments for option");
             if (prob_is_set) error_msg("probability value has already been set");
@@ -850,19 +849,21 @@ error:
     return INVALID_BS_MASK;
 }
 
-static int char_cmp(const void* l, const void* r) {
-    const char *a = l, *b = r;
-    return (*a > *b) - (*a < *b);
-}
+void normalization_rule(char* rule, ulong mask, uchar gens) {
+    int i;
 
-void normalization_rule(char* rule) {
-    char* ptr = rule;
+    *rule++ = 'B';
+    for (i = 0; i < 9; i++, mask >>= 1)
+        if (mask & 1) *rule++ = '0' + i;
+    *rule++ = '/';
 
-    *rule = 'B';
-    while (*ptr != '/') ++ptr;
-    qsort(rule + 1, ptr - rule - 1, 1, char_cmp);
-    ++ptr; *ptr++ = 'S';
-    qsort(ptr, strlen(ptr), 1, char_cmp);
+    *rule++ = 'S';
+    for (i = 0; i < 9; i++, mask >>= 1)
+        if (mask & 1) *rule++ = '0' + i;
+    *rule++ = '/';
+
+    *rule++ = 'G';
+    sprintf(rule, "%i", (int)gens + 1);
 }
 
 template_t parse_rle(const char* rle, uchar gens) {
