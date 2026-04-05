@@ -562,7 +562,7 @@ restart:
     while (true) {
         fputs(ESC"2;2H", stdout); /* move to left-up cell */
 
-        /* Drawing and calculation loop */
+        /* Drawing on screen */
         for (i = 0; i < height; i++) {
             for (j = 0; j < width; j++)
             switch(mode) {
