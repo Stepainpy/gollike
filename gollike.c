@@ -84,7 +84,6 @@ typedef unsigned char bool;
 
 #define DEFAULT_RULE   "B3/S23/G2"
 #define DEFAULT_PROB   0.5
-#define DEFAULT_GENS   2
 #define DEFAULT_WIDTH  50
 #define DEFAULT_HEIGHT 25
 #define DEFAULT_INDENT 0
@@ -193,11 +192,12 @@ typedef unsigned char bool;
     "    G - 180 degree rotation of template"                   "\n" \
 
 #define HELPMSG_RULE_SYNTAX \
-    "RULE SYNTAX:"                                            "\n" \
-    "  Pattern (case insensitive): B<digits>/S<digits>"       "\n" \
-    "    <digits> in the range from 0 to 8 inclusive"         "\n" \
-    "    B<digits> - The number of neighbors to become alive" "\n" \
-    "    S<digits> - The number of neighbors to stay alive"   "\n" \
+    "RULE SYNTAX:"                                                 "\n" \
+    "  Pattern (case insensitive): B<digits>/S<digits>[/G<count>]" "\n" \
+    "    <digits> in the range from 0 to 8 inclusive"              "\n" \
+    "    B<digits> - The number of neighbors to become alive"      "\n" \
+    "    S<digits> - The number of neighbors to stay alive"        "\n" \
+    "    G<count>  - The count of possible states (default 2)"     "\n" \
 
 #define HELPMSG_RULE_EXAMPLE \
     "  Examples:"                                              "\n" \
@@ -208,6 +208,9 @@ typedef unsigned char bool;
     "    B368/S245     - Morley"                               "\n" \
     "    B34/S34       - 34 Life"                              "\n" \
     "    B2/S          - Seeds"                                "\n" \
+    "    B2/S/G3       - Brian's Brain"                        "\n" \
+    "    B2/S345/G4    - Star Wars"                            "\n" \
+    "    B34/S12/G3    - Frogs"                                "\n" \
 
 #define HELPMSG_TEMPLATE_SYNTAX \
     "TEMPLATE SYNTAX:"                                                       "\n" \
@@ -859,7 +862,7 @@ ulong parse_rule(const char* str, uchar* gens) {
             error_msg("generation count too high or low");
         *gens = number - 1;
     } else
-        *gens = DEFAULT_GENS - 1;
+        *gens = 1; /* i.e. 2 states */
 
     return mask;
 error:
