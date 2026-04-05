@@ -44,11 +44,11 @@ typedef unsigned char bool;
  *                              Global constants                             *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#if defined(__linux__)
-#  define  DEAD_CELL   "  "
-#  define ALIVE_CELL   "##"
-#  define  DEAD_CURSOR ".."
-#  define ALIVE_CURSOR "%%"
+#if USE_ASCII_GRAPHIC
+#  define  DEAD_CELL   " "
+#  define ALIVE_CELL   "#"
+#  define  DEAD_CURSOR "."
+#  define ALIVE_CURSOR "%"
 #  define LU_CORNER    "+"
 #  define RU_CORNER    "+"
 #  define LD_CORNER    "+"
@@ -58,19 +58,24 @@ typedef unsigned char bool;
 #  define LVER_BAR     "<"
 #  define RVER_BAR     ">"
 #else
-#  define  DEAD_CELL   '\x20'
-#  define ALIVE_CELL   '\xdb'
-#  define  DEAD_CURSOR '\xb0'
-#  define ALIVE_CURSOR '\xb2'
-#  define LU_CORNER    "\xc9"
-#  define RU_CORNER    "\xbb"
-#  define LD_CORNER    "\xc8"
-#  define RD_CORNER    "\xbc"
-#  define  HOR_BAR     "\xcd"
-#  define  VER_BAR     "\xba"
-#  define LVER_BAR     "\xb9"
-#  define RVER_BAR     "\xcc"
+#  define  DEAD_CELL   " "
+#  define ALIVE_CELL   "\xe2\x96\x88" /* U+2588 */
+#  define  DEAD_CURSOR "\xe2\x96\x91" /* U+2591 */
+#  define ALIVE_CURSOR "\xe2\x96\x93" /* U+2593 */
+#  define LU_CORNER    "\xe2\x95\x94" /* U+2554 */
+#  define RU_CORNER    "\xe2\x95\x97" /* U+2557 */
+#  define LD_CORNER    "\xe2\x95\x9a" /* U+255A */
+#  define RD_CORNER    "\xe2\x95\x9d" /* U+255D */
+#  define  HOR_BAR     "\xe2\x95\x90" /* U+2550 */
+#  define  VER_BAR     "\xe2\x95\x91" /* U+2551 */
+#  define LVER_BAR     "\xe2\x95\xa1" /* U+2561 */
+#  define RVER_BAR     "\xe2\x95\x9e" /* U+255E */
 #endif
+
+#define    DEAD_CELL_BLOCK DEAD_CELL DEAD_CELL
+#define   ALIVE_CELL_BLOCK ALIVE_CELL ALIVE_CELL
+#define  DEAD_CURSOR_BLOCK DEAD_CURSOR DEAD_CURSOR
+#define ALIVE_CURSOR_BLOCK ALIVE_CURSOR ALIVE_CURSOR
 
 #define MIN_FIELD_WIDTH  23
 #define MIN_FIELD_HEIGHT 1
@@ -286,14 +291,14 @@ typedef unsigned char bool;
  *                Static asserts for checking constant values                *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-static_assert(strlitlen(HOR_BAR_LINE) == 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(HOR_BAR_LINE) / strlitlen(HOR_BAR) == 2 * MIN_FIELD_WIDTH);
 
-static_assert(strlitlen(MODE_TXT_SIMULATION  ) + 6 <= strlitlen(HOR_BAR_LINE));
-static_assert(strlitlen(MODE_TXT_PAUSE       ) + 6 <= strlitlen(HOR_BAR_LINE));
-static_assert(strlitlen(MODE_TXT_CURSOR      ) + 6 <= strlitlen(HOR_BAR_LINE));
-static_assert(strlitlen(MODE_TXT_RECTANGLE   ) + 6 <= strlitlen(HOR_BAR_LINE));
-static_assert(strlitlen(MODE_TXT_TEMPLATE    ) + 4 <= strlitlen(HOR_BAR_LINE));
-static_assert(strlitlen(MODE_TXT_TEMPLATE_BUF) + 6 <= strlitlen(HOR_BAR_LINE));
+static_assert(strlitlen(MODE_TXT_SIMULATION  ) + 6 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_PAUSE       ) + 6 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_CURSOR      ) + 6 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_RECTANGLE   ) + 6 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_TEMPLATE    ) + 4 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_TEMPLATE_BUF) + 6 <= 2 * MIN_FIELD_WIDTH);
 
 static_assert(strlitlen(DEFAULT_RULE) <= MAX_RULE_LENGTH);
 static_assert(MIN_FIELD_WIDTH  <= DEFAULT_WIDTH  && DEFAULT_WIDTH  <= MAX_FIELD_WIDTH );
@@ -557,21 +562,21 @@ restart:
         for (i = 0; i < height; i++) {
             for (j = 0; j < width; j++) switch(mode) {
                 case MODE_SIMULATION: case MODE_PAUSE: case MODE_ONESTEP:
-                    fputs(FSTF(i, j) > 0 ? ALIVE_CELL : DEAD_CELL, stdout);
+                    fputs(FSTF(i, j) > 0 ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
                     break;
 
                 case MODE_CURSOR:
                     if (cursor_x == j && cursor_y == i)
-                        fputs(FSTF(i, j) > 0 ? ALIVE_CURSOR : DEAD_CURSOR, stdout);
+                        fputs(FSTF(i, j) > 0 ? ALIVE_CURSOR_BLOCK : DEAD_CURSOR_BLOCK, stdout);
                     else
-                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL : DEAD_CELL, stdout);
+                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
                     break;
 
                 case MODE_RECTANGLE:
                     if (rect_x <= j && j <= cursor_x && rect_y <= i && i <= cursor_y)
-                        fputs(FSTF(i, j) > 0 ? ALIVE_CURSOR : DEAD_CURSOR, stdout);
+                        fputs(FSTF(i, j) > 0 ? ALIVE_CURSOR_BLOCK : DEAD_CURSOR_BLOCK, stdout);
                     else
-                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL : DEAD_CELL, stdout);
+                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
                     break;
 
                 case MODE_TEMPLATE_1: case MODE_TEMPLATE_2: case MODE_TEMPLATE_3:
@@ -581,11 +586,11 @@ restart:
                     template_t* slot = template_slots + mode - MODE_TEMPLATE_1;
                     if (cursor_x <= j && j < cursor_x + slot->width &&
                         cursor_y <= i && i < cursor_y + slot->height) {
-                        putchar(slot->array[slot->width * (i - cursor_y) + (j - cursor_x)]
-                            ? *ALIVE_CURSOR : *DEAD_CURSOR);
-                        putchar(FSTF(i, j) > 0 ? *ALIVE_CELL : *DEAD_CELL);
-                    } else
+                        fputs(slot->array[slot->width * (i - cursor_y) + (j - cursor_x)] > 0
+                            ? ALIVE_CURSOR : DEAD_CURSOR, stdout);
                         fputs(FSTF(i, j) > 0 ? ALIVE_CELL : DEAD_CELL, stdout);
+                    } else
+                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
                 } break;
             }
             fputs(ESC"2G" ESC"1B", stdout);
@@ -916,7 +921,7 @@ void draw_border(ulong w, ulong h) {
 
     fputs(LU_CORNER, stdout);
     for (i = w; i > 0; i -= min(i, MIN_FIELD_WIDTH))
-        fwrite(HOR_BAR_LINE, min(i, MIN_FIELD_WIDTH), 1, stdout);
+        fwrite(HOR_BAR_LINE, min(i, MIN_FIELD_WIDTH) * strlitlen(HOR_BAR), 1, stdout);
     fputs(RU_CORNER"\n", stdout);
 
     for (i = 0; i < h; i++)
@@ -924,7 +929,7 @@ void draw_border(ulong w, ulong h) {
 
     fputs(LD_CORNER, stdout);
     for (i = w; i > 0; i -= min(i, MIN_FIELD_WIDTH))
-        fwrite(HOR_BAR_LINE, min(i, MIN_FIELD_WIDTH), 1, stdout);
+        fwrite(HOR_BAR_LINE, min(i, MIN_FIELD_WIDTH) * strlitlen(HOR_BAR), 1, stdout);
     fputs(RD_CORNER, stdout);
 }
 
