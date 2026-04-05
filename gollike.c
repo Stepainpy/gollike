@@ -530,8 +530,8 @@ int main(int argc, char** argv) {
     }
 
     /* Allocation memory for fields */
-    field_fst = malloc(width *  height     );
-    field_snd = malloc(width * (height + 1)); /* additional line for moving field */
+    field_fst = malloc(width * (height + 1)); /* additional line for moving field */
+    field_snd = malloc(width *  height     );
     if (!field_snd || !field_snd)
         error_msg("couldn't allocate memory");
 
@@ -564,7 +564,8 @@ restart:
 
         /* Drawing and calculation loop */
         for (i = 0; i < height; i++) {
-            for (j = 0; j < width; j++) switch(mode) {
+            for (j = 0; j < width; j++)
+            switch(mode) {
                 case MODE_SIMULATION: case MODE_PAUSE: case MODE_ONESTEP:
                     fputs(FSTF(i, j) > 0 ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
                     break;
@@ -598,28 +599,10 @@ restart:
                 } break;
             }
             fputs(ESC"2G" ESC"1B", stdout);
-
-            if (mode == MODE_SIMULATION || mode == MODE_ONESTEP)
-                for (j = 0; j < width; j++) {
-                    ulong bit, cnt = 0;
-
-                    size_t iu = prev_size_t(i, height);
-                    size_t id = next_size_t(i, height);
-                    size_t jl = prev_size_t(j, width);
-                    size_t jr = next_size_t(j, width);
-
-                    cnt += FSTF(iu, jl) == gens; cnt += FSTF(iu, j) == gens; cnt += FSTF(iu, jr) == gens;
-                    cnt += FSTF(i , jl) == gens;                             cnt += FSTF(i , jr) == gens;
-                    cnt += FSTF(id, jl) == gens; cnt += FSTF(id, j) == gens; cnt += FSTF(id, jr) == gens;
-
-                    bit = 1ul << cnt; if (FSTF(i, j) == gens) bit <<= 9;
-
-                    SNDF(i, j) = (bit & bsmask) > 0;
-                }
         }
-        if (mode == MODE_ONESTEP) mode = MODE_PAUSE;
 
         /* Handling pressing keys */
+        if (mode == MODE_ONESTEP) mode = MODE_PAUSE;
         if (is_symbol_received()) {
             int key = received_symbol();
 
@@ -642,12 +625,11 @@ restart:
                 common_SIM_and_PAUSE:
                     switch (key) {
                         case 'r': goto restart;
-                        case 'w': move_to_up   (field_snd, width, height); break;
-                        case 's': move_to_down (field_snd, width, height); break;
-                        case 'a': move_to_left (field_snd, width, height); break;
-                        case 'd': move_to_right(field_snd, width, height); break;
+                        case 'w': move_to_up   (field_fst, width, height); break;
+                        case 's': move_to_down (field_fst, width, height); break;
+                        case 'a': move_to_left (field_fst, width, height); break;
+                        case 'd': move_to_right(field_fst, width, height); break;
                         case 'e': {
-                            memcpy(field_snd, field_fst, width * height);
                             cursor_x = width  / 2;
                             cursor_y = height / 2;
                             rect_x = rect_y = 0;
@@ -674,9 +656,9 @@ restart:
 
                     else if (key == 'r') { mode = MODE_RECTANGLE; rect_x = cursor_x; rect_y = cursor_y; }
 
-                    else if (key == 'g') SNDF(cursor_y, cursor_x) = 0;
-                    else if (key == 'b') SNDF(cursor_y, cursor_x) = gens;
-                    else if (key == 't') SNDF(cursor_y, cursor_x) = gens - SNDF(cursor_y, cursor_x);
+                    else if (key == 'g') FSTF(cursor_y, cursor_x) = 0;
+                    else if (key == 'b') FSTF(cursor_y, cursor_x) = gens;
+                    else if (key == 't') FSTF(cursor_y, cursor_x) = gens - FSTF(cursor_y, cursor_x);
 
                     goto common_CUR_and_RECT;
                 case MODE_RECTANGLE:
@@ -685,15 +667,15 @@ restart:
                     else if (key == 'g')
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
-                            SNDF(i, j) = 0;
+                            FSTF(i, j) = 0;
                     else if (key == 'b')
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
-                            SNDF(i, j) = gens;
+                            FSTF(i, j) = gens;
                     else if (key == 't')
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
-                            SNDF(i, j) = gens - SNDF(i, j);
+                            FSTF(i, j) = gens - FSTF(i, j);
 
                     else if (key == 'c' || key == 'x') {
                         size_t rect_w = cursor_x - rect_x + 1;
@@ -706,8 +688,8 @@ restart:
                             slot->height = rect_h;
                             for (i = rect_y; i <= cursor_y; i++)
                             for (j = rect_x; j <= cursor_x; j++) {
-                                slot->array[slot->width * (i - rect_y) + (j - rect_x)] = SNDF(i, j);
-                                if (key == 'x') SNDF(i, j) = 0;
+                                slot->array[slot->width * (i - rect_y) + (j - rect_x)] = FSTF(i, j);
+                                if (key == 'x') FSTF(i, j) = 0;
                             }
                         }
                     }
@@ -755,13 +737,13 @@ restart:
                         case 'p':
                             for (i = cursor_y; i < cursor_y + slot->height; i++)
                             for (j = cursor_x; j < cursor_x + slot-> width; j++)
-                                SNDF(i, j) = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
+                                FSTF(i, j) = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
                             break;
                         case 'o':
                             for (i = cursor_y; i < cursor_y + slot->height; i++)
                             for (j = cursor_x; j < cursor_x + slot-> width; j++)
                                 if (slot->array[slot->width * (i - cursor_y) + (j - cursor_x)] > 0)
-                                    SNDF(i, j) = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
+                                    FSTF(i, j) = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
                             break;
 
                         case 'e': mode = MODE_CURSOR; PUT_BAR_CURSOR; break;
@@ -771,7 +753,30 @@ restart:
         }
 
         /* Update current field */
-        memcpy(field_fst, field_snd, width * height);
+        if (mode == MODE_SIMULATION || mode == MODE_ONESTEP) {
+            for (i = 0; i < height; i++)
+            for (j = 0; j <  width; j++)
+                if (FSTF(i, j) == 0 || FSTF(i, j) == gens) {
+                    ulong cnt = 0;
+                    size_t iu = prev_size_t(i, height);
+                    size_t id = next_size_t(i, height);
+                    size_t jl = prev_size_t(j,  width);
+                    size_t jr = next_size_t(j,  width);
+
+                    cnt += FSTF(iu, jl) == gens; cnt += FSTF(iu, j) == gens; cnt += FSTF(iu, jr) == gens;
+                    cnt += FSTF(i , jl) == gens;                             cnt += FSTF(i , jr) == gens;
+                    cnt += FSTF(id, jl) == gens; cnt += FSTF(id, j) == gens; cnt += FSTF(id, jr) == gens;
+
+                    if (FSTF(i, j) == gens)
+                        SNDF(i, j) = FSTF(i, j) - ((bsmask & (1ul << (cnt + 9))) == 0);
+                    else
+                        SNDF(i, j) = bsmask & (1ul << cnt) ? gens : 0;
+                } else
+                    SNDF(i, j) = FSTF(i, j) - 1;
+            memcpy(field_fst, field_snd, width * height);
+        }
+
+        /* Update screen */
         fflush(stdout); sleep_ms(DELAY_IN_MILLISECOND);
     }
 
