@@ -44,8 +44,8 @@ typedef unsigned char bool;
  *                              Global constants                             *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+#define DEAD_CELL " "
 #if USE_ASCII_GRAPHIC
-#  define  DEAD_CELL   " "
 #  define ALIVE_CELL   "#"
 #  define  DEAD_CURSOR "."
 #  define ALIVE_CURSOR "%"
@@ -58,7 +58,6 @@ typedef unsigned char bool;
 #  define LVER_BAR     "<"
 #  define RVER_BAR     ">"
 #else
-#  define  DEAD_CELL   " "
 #  define ALIVE_CELL   "\xe2\x96\x88" /* U+2588 */
 #  define  DEAD_CURSOR "\xe2\x96\x91" /* U+2591 */
 #  define ALIVE_CURSOR "\xe2\x96\x93" /* U+2593 */
@@ -149,6 +148,7 @@ typedef unsigned char bool;
     "    -h, --height <integer>        Sets height of field"                                   "\n" \
     "    -i, --indent <integer>        Sets indent from border for spawning cells"             "\n" \
     "    -1, -2, ..., -9 <string>      Sets a template in slot # using format described below" "\n" \
+    "    -c, --colors <string>         Sets palette for drawing cell states"                   "\n" \
 
 #define HELPMSG_KEYS_COMMON \
     "CONTROL KEYS:"                               "\n" \
@@ -353,6 +353,8 @@ typedef enum {
     MODE_TEMPLATE_BUF
 } mode_action_t;
 
+static char state_colors[256][16] = {0};
+
 float randf0t1(void);
 uchar randrange(uchar max);
 
@@ -419,6 +421,7 @@ int main(int argc, char** argv) {
     bool  width_is_set = false;
     bool height_is_set = false;
     bool indent_is_set = false;
+    bool colors_is_set = false;
 
     (void)shift_arg(); /* skip program name */
 
@@ -500,6 +503,21 @@ int main(int argc, char** argv) {
 
             indent = strtoul(arg, &end, 10);
             if (*end != '\0') error_msg("incorrect value for indent");
+        } else if (strcmp(opt, "-c") == 0 || strcmp(opt, "--colors") == 0) {
+            ulong color_id; i = 0;
+            if (!arg) error_msg("not enough arguments for option");
+            if (colors_is_set) error_msg("color values has already been set");
+            colors_is_set = true;
+
+            color_id = strtoul(arg, &end, 10);
+            if (color_id > 255) error_msgf("incorrect id '%lu' for color", color_id);
+            sprintf(state_colors[i++], ESC"48;5;%lum", color_id);
+            while (*end) {
+                if (i == 256) error_msg("too many colors");
+                arg = end; color_id = strtoul(arg, &end, 10);
+                if (color_id > 255) error_msgf("incorrect id '%lu' for color", color_id);
+                sprintf(state_colors[i++], ESC"38;5;%lum", color_id);
+            }
         } else if (opt[0] == '-' && ('1' <= opt[1] && opt[1] <= '9') && opt[2] == '\0') {
             ulong slot_index = opt[1] - '1';
             if (!arg) error_msg("not enough arguments for option");
@@ -519,6 +537,10 @@ int main(int argc, char** argv) {
         bsmask = parse_rule(DEFAULT_RULE, &gens);
         strcpy(rule, DEFAULT_RULE);
     }
+
+    /* Checking colors for states */
+    if (colors_is_set && strlen(state_colors[gens]) == 0)
+        error_msg("not enough colors for states");
 
     /* Checking indent after get width and height */
     if (indent > width / 2 || indent > height / 2)
@@ -565,43 +587,53 @@ restart:
         fputs(ESC"2;2H", stdout); /* move to left-up cell */
 
         /* Drawing on screen */
+        fputs(state_colors[0], stdout);
         for (i = 0; i < height; i++) {
-            for (j = 0; j < width; j++)
-            switch(mode) {
-                case MODE_SIMULATION: case MODE_PAUSE: case MODE_ONESTEP:
-                    fputs(FSTF(i, j) > 0 ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
-                    break;
+            for (j = 0; j < width; j++) {
+                uchar cell = FSTF(i, j);
+                bool has_cell = cell > 0;
+                fputs(state_colors[cell], stdout);
+                switch(mode) {
+                    case MODE_SIMULATION: case MODE_PAUSE: case MODE_ONESTEP:
+                        fputs(has_cell ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
+                        break;
 
-                case MODE_CURSOR:
-                    if (cursor_x == j && cursor_y == i)
-                        fputs(FSTF(i, j) > 0 ? ALIVE_CURSOR_BLOCK : DEAD_CURSOR_BLOCK, stdout);
-                    else
-                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
-                    break;
+                    case MODE_CURSOR:
+                        if (cursor_x == j && cursor_y == i) {
+                            fputs(state_colors[has_cell ? cell : gens], stdout);
+                            fputs(has_cell ? ALIVE_CURSOR_BLOCK : DEAD_CURSOR_BLOCK, stdout);
+                        } else
+                            fputs(has_cell ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
+                        break;
 
-                case MODE_RECTANGLE:
-                    if (rect_x <= j && j <= cursor_x && rect_y <= i && i <= cursor_y)
-                        fputs(FSTF(i, j) > 0 ? ALIVE_CURSOR_BLOCK : DEAD_CURSOR_BLOCK, stdout);
-                    else
-                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
-                    break;
+                    case MODE_RECTANGLE:
+                        if (rect_x <= j && j <= cursor_x && rect_y <= i && i <= cursor_y) {
+                            fputs(state_colors[has_cell ? cell : gens], stdout);
+                            fputs(has_cell ? ALIVE_CURSOR_BLOCK : DEAD_CURSOR_BLOCK, stdout);
+                        } else
+                            fputs(has_cell ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
+                        break;
 
-                case MODE_TEMPLATE_1: case MODE_TEMPLATE_2: case MODE_TEMPLATE_3:
-                case MODE_TEMPLATE_4: case MODE_TEMPLATE_5: case MODE_TEMPLATE_6:
-                case MODE_TEMPLATE_7: case MODE_TEMPLATE_8: case MODE_TEMPLATE_9:
-                case MODE_TEMPLATE_BUF: {
-                    template_t* slot = template_slots + mode - MODE_TEMPLATE_1;
-                    if (cursor_x <= j && j < cursor_x + slot->width &&
-                        cursor_y <= i && i < cursor_y + slot->height) {
-                        fputs(slot->array[slot->width * (i - cursor_y) + (j - cursor_x)] > 0
-                            ? ALIVE_CURSOR : DEAD_CURSOR, stdout);
-                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL : DEAD_CELL, stdout);
-                    } else
-                        fputs(FSTF(i, j) > 0 ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
-                } break;
+                    case MODE_TEMPLATE_1: case MODE_TEMPLATE_2: case MODE_TEMPLATE_3:
+                    case MODE_TEMPLATE_4: case MODE_TEMPLATE_5: case MODE_TEMPLATE_6:
+                    case MODE_TEMPLATE_7: case MODE_TEMPLATE_8: case MODE_TEMPLATE_9:
+                    case MODE_TEMPLATE_BUF: {
+                        template_t* slot = template_slots + mode - MODE_TEMPLATE_1;
+                        if (cursor_x <= j && j < cursor_x + slot->width &&
+                            cursor_y <= i && i < cursor_y + slot->height) {
+                            uchar hole = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
+                            fputs(state_colors[hole ? hole : gens], stdout);
+                            fputs(hole > 0 ? ALIVE_CURSOR : DEAD_CURSOR, stdout);
+                            fputs(state_colors[FSTF(i, j)], stdout);
+                            fputs(has_cell ? ALIVE_CELL : DEAD_CELL, stdout);
+                        } else
+                            fputs(has_cell ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
+                    } break;
+                }
             }
             fputs(ESC"2G" ESC"1B", stdout);
         }
+        fputs(ESC"0m", stdout);
 
         /* Handling pressing keys */
         if (mode == MODE_ONESTEP) mode = MODE_PAUSE;
