@@ -144,11 +144,11 @@ typedef unsigned char bool;
     "    -a, --autofit                 Sets width and height of field from size of console"                      "\n" \
 
 #define HELPMSG_OPTIONS_PT2 \
-    "    -w, --width  <integer>        Sets width of field"                                    "\n" \
-    "    -h, --height <integer>        Sets height of field"                                   "\n" \
-    "    -i, --indent <integer>        Sets indent from border for spawning cells"             "\n" \
-    "    -1, -2, ..., -9 <string>      Sets a template in slot # using format described below" "\n" \
-    "    -c, --colors <string>         Sets palette for drawing cell states"                   "\n" \
+    "    -w, --width  <integer>        Sets width of field"                                                "\n" \
+    "    -h, --height <integer>        Sets height of field"                                               "\n" \
+    "    -i, --indent <integer>        Sets indent from border for spawning cells"                         "\n" \
+    "    -1, -2, ..., -9 <string>      Sets a template in slot #, using format described below"            "\n" \
+    "    -c, --colors <string>         Sets palette for drawing cell states, using format described below" "\n" \
 
 #define HELPMSG_KEYS_COMMON \
     "CONTROL KEYS:"                               "\n" \
@@ -251,6 +251,88 @@ typedef unsigned char bool;
     "                   ..........#.....#.......#..........." "\n" \
     "                   ...........#...#...................." "\n" \
     "                   ............##......................" "\n" \
+
+#define STDCLR_N \
+    ESC"48;5;0m 0" ESC"30m" ESC"48;5;1m 1" ESC"48;5;2m 2" ESC"48;5;3m 3" \
+    ESC"48;5;4m 4"          ESC"48;5;5m 5" ESC"48;5;6m 6" ESC"48;5;7m 7"
+
+#define STDCLR_B ESC"30m" \
+    ESC "48;5;8m 8" ESC "48;5;9m 9" ESC"48;5;10m10" ESC"48;5;11m11" \
+    ESC"48;5;12m12" ESC"48;5;13m13" ESC"48;5;14m14" ESC"48;5;15m15"
+
+#define HELPMSG_COLORS_PT1 \
+    "COLOR PALETTE:"                                                   "\n" \
+    "  Parameter format:"                                              "\n" \
+    "    <string> is list of color identificators separeted by spaces" "\n" \
+    "" "\n" \
+    "  Standard terminal colors:"          "\n" \
+    "    " STDCLR_N ESC"0m"                "\n" \
+    "  Standard terminal bright colors:"   "\n" \
+    "    " STDCLR_B ESC"0m"                "\n" \
+    "  RGB cude 6x6x6 (0 <= r, g, b <= 5)" "\n" \
+    "    id = 16 + 36*r + 6*g + b"         "\n" \
+
+#define COLORFACE_R0_WH \
+    ESC"48;5;16m 16" ESC"48;5;17m 17" ESC"48;5;18m 18" ESC"48;5;19m 19" ESC"48;5;20m 20" ESC"48;5;21m 21" \
+    ESC"48;5;22m 22" ESC"48;5;23m 23" ESC"48;5;24m 24" ESC"48;5;25m 25" ESC"48;5;26m 26" ESC"48;5;27m 27" \
+    ESC"48;5;28m 28" ESC"48;5;29m 29" ESC"48;5;30m 30" ESC"48;5;31m 31" ESC"48;5;32m 32" ESC"48;5;33m 33"
+#define COLORFACE_R0_BL ESC"30m" \
+    ESC"48;5;34m 34" ESC"48;5;35m 35" ESC"48;5;36m 36" ESC"48;5;37m 37" ESC"48;5;38m 38" ESC"48;5;39m 39" \
+    ESC"48;5;40m 40" ESC"48;5;41m 41" ESC"48;5;42m 42" ESC"48;5;43m 43" ESC"48;5;44m 44" ESC"48;5;45m 45" \
+    ESC"48;5;46m 46" ESC"48;5;47m 47" ESC"48;5;48m 48" ESC"48;5;49m 49" ESC"48;5;50m 50" ESC"48;5;51m 51"
+
+#define COLORFACE_R1_WH \
+    ESC"48;5;52m 52" ESC"48;5;53m 53" ESC"48;5;54m 54" ESC"48;5;55m 55" ESC"48;5;56m 56" ESC"48;5;57m 57" \
+    ESC"48;5;58m 58" ESC"48;5;59m 59" ESC"48;5;60m 60" ESC"48;5;61m 61" ESC"48;5;62m 62" ESC"48;5;63m 63" \
+    ESC"48;5;64m 64" ESC"48;5;65m 65" ESC"48;5;66m 66" ESC"48;5;67m 67" ESC"48;5;68m 68" ESC"48;5;69m 69"
+#define COLORFACE_R1_BL ESC"30m" \
+    ESC"48;5;70m 70" ESC"48;5;71m 71" ESC"48;5;72m 72" ESC"48;5;73m 73" ESC"48;5;74m 74" ESC"48;5;75m 75" \
+    ESC"48;5;76m 76" ESC"48;5;77m 77" ESC"48;5;78m 78" ESC"48;5;79m 79" ESC"48;5;80m 80" ESC"48;5;81m 81" \
+    ESC"48;5;82m 82" ESC"48;5;83m 83" ESC"48;5;84m 84" ESC"48;5;85m 85" ESC"48;5;86m 86" ESC"48;5;87m 87"
+
+#define COLORFACE_R2_WH \
+    ESC "48;5;88m 88" ESC "48;5;89m 89" ESC "48;5;90m 90" ESC "48;5;91m 91" ESC "48;5;92m 92" ESC "48;5;93m 93" \
+    ESC "48;5;94m 94" ESC "48;5;95m 95" ESC "48;5;96m 96" ESC "48;5;97m 97" ESC "48;5;98m 98" ESC "48;5;99m 99" \
+    ESC"48;5;100m100" ESC"48;5;101m101" ESC"48;5;102m102" ESC"48;5;103m103" ESC"48;5;104m104" ESC"48;5;105m105"
+#define COLORFACE_R2_BL ESC"30m" \
+    ESC"48;5;106m106" ESC"48;5;107m107" ESC"48;5;108m108" ESC"48;5;109m109" ESC"48;5;110m110" ESC"48;5;111m111" \
+    ESC"48;5;112m112" ESC"48;5;113m113" ESC"48;5;114m114" ESC"48;5;115m115" ESC"48;5;116m116" ESC"48;5;117m117" \
+    ESC"48;5;118m118" ESC"48;5;119m119" ESC"48;5;120m120" ESC"48;5;121m121" ESC"48;5;122m122" ESC"48;5;123m123"
+
+#define COLORFACE_R3_WH \
+    ESC"48;5;124m124" ESC"48;5;125m125" ESC"48;5;126m126" ESC"48;5;127m127" ESC"48;5;128m128" ESC"48;5;129m129" \
+    ESC"48;5;130m130" ESC"48;5;131m131" ESC"48;5;132m132" ESC"48;5;133m133" ESC"48;5;134m134" ESC"48;5;135m135" \
+    ESC"48;5;136m136" ESC"48;5;137m137" ESC"48;5;138m138" ESC"48;5;139m139" ESC"48;5;140m140" ESC"48;5;141m141"
+#define COLORFACE_R3_BL ESC"30m" \
+    ESC"48;5;142m142" ESC"48;5;143m143" ESC"48;5;144m144" ESC"48;5;145m145" ESC"48;5;146m146" ESC"48;5;147m147" \
+    ESC"48;5;148m148" ESC"48;5;149m149" ESC"48;5;150m150" ESC"48;5;151m151" ESC"48;5;152m152" ESC"48;5;153m153" \
+    ESC"48;5;154m154" ESC"48;5;155m155" ESC"48;5;156m156" ESC"48;5;157m157" ESC"48;5;158m158" ESC"48;5;159m159"
+
+#define COLORFACE_R4_WH \
+    ESC"48;5;160m160" ESC"48;5;161m161" ESC"48;5;162m162" ESC"48;5;163m163" ESC"48;5;164m164" ESC"48;5;165m165" \
+    ESC"48;5;166m166" ESC"48;5;167m167" ESC"48;5;168m168" ESC"48;5;169m169" ESC"48;5;170m170" ESC"48;5;171m171" \
+    ESC"48;5;172m172" ESC"48;5;173m173" ESC"48;5;174m174" ESC"48;5;175m175" ESC"48;5;176m176" ESC"48;5;177m177"
+#define COLORFACE_R4_BL ESC"30m" \
+    ESC"48;5;178m178" ESC"48;5;179m179" ESC"48;5;180m180" ESC"48;5;181m181" ESC"48;5;182m182" ESC"48;5;183m183" \
+    ESC"48;5;184m184" ESC"48;5;185m185" ESC"48;5;186m186" ESC"48;5;187m187" ESC"48;5;188m188" ESC"48;5;189m189" \
+    ESC"48;5;190m190" ESC"48;5;191m191" ESC"48;5;192m192" ESC"48;5;193m193" ESC"48;5;194m194" ESC"48;5;195m195"
+
+#define COLORFACE_R5_WH \
+    ESC"48;5;196m196" ESC"48;5;197m197" ESC"48;5;198m198" ESC"48;5;199m199" ESC"48;5;200m200" ESC"48;5;201m201" \
+    ESC"48;5;202m202" ESC"48;5;203m203" ESC"48;5;204m204" ESC"48;5;205m205" ESC"48;5;206m206" ESC"48;5;207m207" \
+    ESC"48;5;208m208" ESC"48;5;209m209" ESC"48;5;210m210" ESC"48;5;211m211" ESC"48;5;212m212" ESC"48;5;213m213"
+#define COLORFACE_R5_BL ESC"30m" \
+    ESC"48;5;214m214" ESC"48;5;215m215" ESC"48;5;216m216" ESC"48;5;217m217" ESC"48;5;218m218" ESC"48;5;219m219" \
+    ESC"48;5;220m220" ESC"48;5;221m221" ESC"48;5;222m222" ESC"48;5;223m223" ESC"48;5;224m224" ESC"48;5;225m225" \
+    ESC"48;5;226m226" ESC"48;5;227m227" ESC"48;5;228m228" ESC"48;5;229m229" ESC"48;5;230m230" ESC"48;5;231m231"
+
+#define HELPMSG_COLORS_PT2 \
+    "  Black to white gradient" "\n" \
+    "    "   ESC"48;5;232m232" ESC"48;5;233m233" ESC"48;5;234m234" ESC"48;5;235m235" ESC"48;5;236m236" ESC"48;5;237m237" \
+             ESC"48;5;238m238" ESC"48;5;239m239" ESC"48;5;240m240" ESC"48;5;241m241" ESC"48;5;242m242" ESC"48;5;243m243" \
+    ESC"30m" ESC"48;5;244m244" ESC"48;5;245m245" ESC"48;5;246m246" ESC"48;5;247m247" ESC"48;5;248m248" ESC"48;5;249m249" \
+             ESC"48;5;250m250" ESC"48;5;251m251" ESC"48;5;252m252" ESC"48;5;253m253" ESC"48;5;254m254" ESC"48;5;255m255" \
+    ESC"0m" "\n" \
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                        Information and mode string                        *
@@ -447,6 +529,20 @@ int main(int argc, char** argv) {
             putchar('\n'); fputs(HELPMSG_TEMPLATE_EXAMPLE_PT1, stdout);
             putchar('\n'); fputs(HELPMSG_TEMPLATE_EXAMPLE_PT2, stdout);
                            fputs(HELPMSG_TEMPLATE_EXAMPLE_PT3, stdout);
+            putchar('\n'); fputs(HELPMSG_COLORS_PT1          , stdout);
+                           fputs("    "COLORFACE_R0_WH       , stdout); puts(ESC"0m");
+                           fputs("    "COLORFACE_R1_WH       , stdout); puts(ESC"0m");
+                           fputs("    "COLORFACE_R2_WH       , stdout); puts(ESC"0m");
+                           fputs("    "COLORFACE_R3_WH       , stdout); puts(ESC"0m");
+                           fputs("    "COLORFACE_R4_WH       , stdout); puts(ESC"0m");
+                           fputs("    "COLORFACE_R5_WH       , stdout); puts(ESC"0m");
+                           fputs("    "COLORFACE_R0_BL       , stdout); puts(ESC"0m");
+                           fputs("    "COLORFACE_R1_BL       , stdout); puts(ESC"0m");
+                           fputs("    "COLORFACE_R2_BL       , stdout); puts(ESC"0m");
+                           fputs("    "COLORFACE_R3_BL       , stdout); puts(ESC"0m");
+                           fputs("    "COLORFACE_R4_BL       , stdout); puts(ESC"0m");
+                           fputs("    "COLORFACE_R5_BL       , stdout); puts(ESC"0m");
+                           fputs(HELPMSG_COLORS_PT2          , stdout);
             putchar('\n'); return 0; /* <- premature exit */
 
         } else if (strcmp(opt, "-a") == 0 || strcmp(opt, "--autofit") == 0) {
