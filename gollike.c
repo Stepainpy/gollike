@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <time.h>
 
 #if __STDC_VERSION__ >= 199901L
@@ -605,15 +606,22 @@ int main(int argc, char** argv) {
             if (colors_is_set) error_msg("color values has already been set");
             colors_is_set = true;
 
-            color_id = strtoul(arg, &end, 10);
-            if (color_id > 255) error_msgf("incorrect id '%lu' for color", color_id);
-            sprintf(state_colors[i++], ESC"48;5;%lum", color_id);
-            while (*end) {
-                if (i == 256) error_msg("too many colors");
-                arg = end; color_id = strtoul(arg, &end, 10);
+            do {
+                if (i > 255) error_msg("too many colors");
+
+                while (isspace(*arg)) ++arg;
+                for (color_id = 0; isdigit(*arg); arg++)
+                    color_id = 10 * color_id + (*arg - '0');
+
+                if (*arg != '\0' && !isspace(*arg))
+                    error_msgf("unexpected character '%c' in color list", *arg);
                 if (color_id > 255) error_msgf("incorrect id '%lu' for color", color_id);
+
                 sprintf(state_colors[i++], ESC"38;5;%lum", color_id);
-            }
+            } while (*arg);
+
+            if (i < 2) error_msg("not enough colors");
+            state_colors[0][2] = '4';
         } else if (opt[0] == '-' && ('1' <= opt[1] && opt[1] <= '9') && opt[2] == '\0') {
             ulong slot_index = opt[1] - '1';
             if (!arg) error_msg("not enough arguments for option");
