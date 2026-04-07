@@ -1,0 +1,2 @@
+rule B34/S12/G3
+colors 22 34 76
