@@ -185,13 +185,15 @@ typedef unsigned char bool;
     "  1-9 - Enable template with number #"               "\n" \
 
 #define HELPMSG_KEYS_TEMPLATE \
-    "  Template mode:"                                          "\n" \
-    "    E - Exit from template mode"                           "\n" \
-    "    P - Paste template and rewrite all cells in rect area" "\n" \
-    "    O - Overlay template with write only alive cells"      "\n" \
-    "    F - Flip template by horizontal"                       "\n" \
-    "  S+F - Flip template by vertical"                         "\n" \
-    "    G - 180 degree rotation of template"                   "\n" \
+    "  Template mode:"                                           "\n" \
+    "    E - Exit from template mode"                            "\n" \
+    "    P - Paste template and rewrite all cells in rect area"  "\n" \
+    "    O - Overlay template with write only alive cells"       "\n" \
+    "    F - Flip template by horizontal"                        "\n" \
+    "  S+F - Flip template by vertical"                          "\n" \
+    "    G - 180 degree rotation of template"                    "\n" \
+    "    R - 90 degree rotation by clockwise of template"        "\n" \
+    "  S+R - 90 degree rotation by counterclockwise of template" "\n" \
 
 #define HELPMSG_RULE_SYNTAX \
     "RULE SYNTAX:"                                                 "\n" \
@@ -459,6 +461,7 @@ void move_to_right(uchar* field, size_t width, size_t heigth);
 void flip_horizontally(template_t* tmpl);
 void flip_vertically  (template_t* tmpl);
 void rotate_by_180deg (template_t* tmpl);
+void transpose        (template_t* tmpl);
 
 bool get_console_size(ulong* width, ulong* height);
 void sleep_ms(ulong ms);
@@ -877,6 +880,14 @@ restart:
                         case 'f': flip_horizontally(slot); break;
                         case 'F': flip_vertically  (slot); break;
                         case 'g': rotate_by_180deg (slot); break;
+                        case 'r':
+                            transpose(slot);
+                            flip_horizontally(slot);
+                            break;
+                        case 'R':
+                            flip_horizontally(slot);
+                            transpose(slot);
+                            break;
 
                         case 'p':
                             for (i = cursor_y; i < cursor_y + slot->height; i++)
@@ -1158,6 +1169,24 @@ void rotate_by_180deg(template_t* tmpl) {
         uchar t = tmpl->array[i];
         tmpl->array[i] = tmpl->array[N - i - 1];
         tmpl->array[N - i - 1] = t;
+    }
+}
+
+void transpose(template_t* tmpl) {
+    ulong temp, i, j;
+    if (tmpl->width == 1 || tmpl->height == 1) {
+        temp = tmpl->width;
+        tmpl->width = tmpl->height;
+        tmpl->height = temp;
+    } else if (tmpl->width == tmpl->height) {
+        for (i = 0; i < tmpl->width; i++)
+        for (j = i + 1; j < tmpl->width; j++) {
+            temp = tmpl->array[tmpl->width * i + j];
+            tmpl->array[tmpl->width * i + j] = tmpl->array[tmpl->width * j + i];
+            tmpl->array[tmpl->width * j + i] = temp;
+        }
+    } else {
+        /* TODO: transpose for M != N */
     }
 }
 
