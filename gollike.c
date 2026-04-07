@@ -162,10 +162,11 @@ typedef unsigned char bool;
     "    D - Move the camera/cursor to the right" "\n" \
 
 #define HELPMSG_KEYS_SIM \
-    "  Simulation mode:"                        "\n" \
-    "    R - Reset simulation"                  "\n" \
-    "    P - Set/unset pause"                   "\n" \
-    "    O - Make one simulation step in pause" "\n" \
+    "  Simulation mode:"                                  "\n" \
+    "    R - Reset simulation"                            "\n" \
+    "  S+R - Reset simulation with only full alive cells" "\n" \
+    "    P - Set/unset pause"                             "\n" \
+    "    O - Make one simulation step in pause"           "\n" \
 
 #define HELPMSG_KEYS_EDIT \
     "  Edit mode:"                                        "\n" \
@@ -482,6 +483,8 @@ int main(int argc, char** argv) {
     char rule[MAX_RULE_LENGTH + 1];
     float prob; uchar gens;
 
+    bool full_alive_only = false;
+
     /* Coordinates */
     ulong cursor_x = 0, cursor_y = 0;
     ulong   rect_x = 0,   rect_y = 0;
@@ -685,7 +688,8 @@ restart:
     memset(field_snd, 0, width * height);
     for (i = indent; i < height - indent; i++)
     for (j = indent; j < width  - indent; j++)
-        FSTF(i, j) = SNDF(i, j) = randf0t1() < prob ? randrange(gens - 1) + 1 : 0;
+        FSTF(i, j) = randf0t1() < prob
+            ? (full_alive_only ? gens : randrange(gens - 1) + 1) : 0;
 
     /* Main program loop */
     while (true) {
@@ -763,7 +767,8 @@ restart:
                 case MODE_ONESTEP: /* nothing */ break;
                 common_SIM_and_PAUSE:
                     switch (key) {
-                        case 'r': goto restart;
+                        case 'r': full_alive_only = false; goto restart;
+                        case 'R': full_alive_only =  true; goto restart;
                         case 'w': move_to_up   (field_fst, width, height); break;
                         case 's': move_to_down (field_fst, width, height); break;
                         case 'a': move_to_left (field_fst, width, height); break;
