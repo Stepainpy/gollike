@@ -445,7 +445,7 @@ size_t prev_size_t(size_t value, ulong len);
 size_t next_size_t(size_t value, ulong len);
 
 ulong parse_rule(const char* str, uchar* gens);
-template_t parse_rle(const char* rle, uchar gens);
+template_t parse_rle(const char* rle, uchar gens, ulong width, ulong height);
 void normalization_rule(char* rule, ulong mask, uchar gens);
 
 void draw_border(ulong w, ulong h);
@@ -653,7 +653,8 @@ int main(int argc, char** argv) {
     /* Convert RLE string to template */
     for (i = 0; i < COUNT_TEMPLATE_SLOT; i++) {
         if (!template_slots[i].array) continue;
-        template_slots[i] = parse_rle((void*)template_slots[i].array, gens);
+        template_slots[i] = parse_rle(
+            (void*)template_slots[i].array, gens, width, height);
         if (!template_slots[i].array) goto error;
     }
 
@@ -1022,7 +1023,7 @@ void normalization_rule(char* rule, ulong mask, uchar gens) {
     sprintf(rule, "%i", (int)gens + 1);
 }
 
-template_t parse_rle(const char* rle, uchar gens) {
+template_t parse_rle(const char* rle, uchar gens, ulong width, ulong height) {
     template_t new = {0}; char* end;
     ulong x = 0, y = 0;
 
@@ -1031,9 +1032,9 @@ template_t parse_rle(const char* rle, uchar gens) {
     new.height = strtoul(end + 1, &end, 10);
     if (*end != ':') error_msgf("unexpected character '%c' after height", *end);
 
-    if (new.width  == 0 || new.width > MAX_FIELD_WIDTH)
+    if (new.width  == 0 || new.width > width)
         error_msg("incorrect value for template width");
-    if (new.height == 0 || new.height > MAX_FIELD_HEIGHT)
+    if (new.height == 0 || new.height > height)
         error_msg("incorrect value for template height");
 
     new.array = malloc(new.width * new.height);
