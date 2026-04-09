@@ -581,7 +581,7 @@ int main(int argc, char** argv) {
             prob_is_set = true;
 
             prob = strtod(arg, &end);
-            if (*end != '\0' || prob != prob || prob <= 0. || prob >= 1.)
+            if (*end != '\0' || prob != prob || prob < 0.001 || prob > 0.999)
                 error_msg("incorrect value for probability");
         } else if (strcmp(opt, "-w") == 0 || strcmp(opt, "--width") == 0) {
             if (!arg) error_msg("not enough arguments for option");
