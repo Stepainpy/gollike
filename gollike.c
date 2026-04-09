@@ -90,7 +90,7 @@ typedef unsigned char bool;
 
 #define INVALID_BS_MASK (-1ul)
 
-#define FRAMES_REP_SECOND    50 /* frame ~ one simulation step */
+#define FRAMES_REP_SECOND    60 /* frame ~ one simulation step */
 #define DELAY_IN_MILLISECOND (1000 / FRAMES_REP_SECOND)
 
 #define MAX_RULE_LENGTH     26
@@ -672,7 +672,8 @@ int main(int argc, char** argv) {
     }
 
     /* Allocation memory for fields */
-    field_fst = malloc(width * (height + 1)); /* additional line for moving field */
+    /* additional lines for moving of field and correct updating */
+    field_fst = malloc(width * (height + 3));
     field_snd = malloc(width *  height     );
     if (!field_snd || !field_snd)
         error_msg("couldn't allocate memory");
@@ -924,26 +925,33 @@ restart:
 
         /* Update current field */
         if (mode == MODE_SIMULATION || mode == MODE_ONESTEP) {
-            for (i = 0; i < height; i++)
-            for (j = 0; j <  width; j++)
-                if (FSTF(i, j) == 0 || FSTF(i, j) == gens) {
-                    ulong cnt = 0;
-                    size_t iu = prev_size_t(i, height);
-                    size_t id = next_size_t(i, height);
-                    size_t jl = prev_size_t(j,  width);
-                    size_t jr = next_size_t(j,  width);
+            memcpy(&FSTF(height + 0, 0), &FSTF(         0, 0), width); /* save first line after last */
+            memcpy(&FSTF(height + 1, 0), &FSTF(height - 1, 0), width); /* update window: previous line */
+            memcpy(&FSTF(height + 2, 0), &FSTF(         0, 0), width); /* update window:  current line */
+            for (i = 0; i < height; i++) {
+                for (j = 0; j < width; j++)
+                    if (FSTF(i, j) == 0 || FSTF(i, j) == gens) {
+                        ulong cnt = 0;
 
-                    cnt += FSTF(iu, jl) == gens; cnt += FSTF(iu, j) == gens; cnt += FSTF(iu, jr) == gens;
-                    cnt += FSTF(i , jl) == gens;                             cnt += FSTF(i , jr) == gens;
-                    cnt += FSTF(id, jl) == gens; cnt += FSTF(id, j) == gens; cnt += FSTF(id, jr) == gens;
+                        size_t jl = j > 0 ? j - 1 : width - 1;
+                        size_t jr = j < width - 1 ? j + 1 : 0;
+                        size_t ip = height + 1;
+                        size_t ic = height + 2;
+                        size_t in = i + 1;
 
-                    if (FSTF(i, j) == gens)
-                        SNDF(i, j) = FSTF(i, j) - ((bsmask & (1ul << (cnt + 9))) == 0);
-                    else
-                        SNDF(i, j) = bsmask & (1ul << cnt) ? gens : 0;
-                } else
-                    SNDF(i, j) = FSTF(i, j) - 1;
-            memcpy(field_fst, field_snd, width * height);
+                        cnt += FSTF(ip, jl) == gens; cnt += FSTF(ip, j) == gens; cnt += FSTF(ip, jr) == gens;
+                        cnt += FSTF(ic, jl) == gens;                             cnt += FSTF(ic, jr) == gens;
+                        cnt += FSTF(in, jl) == gens; cnt += FSTF(in, j) == gens; cnt += FSTF(in, jr) == gens;
+
+                        if (FSTF(ic, j) == gens)
+                            FSTF(i, j) -= ((bsmask & (1ul << (cnt + 9))) == 0);
+                        else
+                            FSTF(i, j) = bsmask & (1ul << cnt) ? gens : 0;
+                    } else
+                        FSTF(i, j) -= 1;
+                memcpy(&FSTF(height + 1, 0), &FSTF(height + 2, 0), width); /* move current line to previous */
+                memcpy(&FSTF(height + 2, 0), &FSTF(     i + 1, 0), width); /* copy next line into current */
+            }
         }
 
         /* Update screen */
