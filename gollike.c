@@ -503,11 +503,10 @@ int main(int argc, char** argv) {
     /* Slots with pattern for paste */
     template_t template_slots[COUNT_TEMPLATE_SLOT] = {0};
 
-    /* arrays with current and next field */
-    uchar* field_fst = NULL;
-    uchar* field_snd = NULL;
-#define FSTF(i, j) field_fst[width * (i) + (j)]
-#define SNDF(i, j) field_snd[width * (i) + (j)]
+    /* array with field */
+    uchar* field = NULL;
+#define FLDV(i, j) field[width * (i) + (j)]
+#define FLDP(i, j) (field + width * (i) + (j))
 
     /* Flag parsed options */
     bool   rule_is_set = false;
@@ -671,12 +670,10 @@ int main(int argc, char** argv) {
         if (!template_slots[i].array) goto error;
     }
 
-    /* Allocation memory for fields */
+    /* Allocation memory for field */
     /* additional lines for moving of field and correct updating */
-    field_fst = malloc(width * (height + 3));
-    field_snd = malloc(width *  height     );
-    if (!field_snd || !field_snd)
-        error_msg("couldn't allocate memory");
+    field = malloc(width * (height + 3));
+    if (!field) error_msg("couldn't allocate memory");
 
     /* Setup terminal */
 #if defined(__linux__)
@@ -695,11 +692,10 @@ int main(int argc, char** argv) {
     srand(time(NULL));
 restart:
     /* Initialization of fields */
-    memset(field_fst, 0, width * height);
-    memset(field_snd, 0, width * height);
+    memset(field, 0, width * height);
     for (i = indent; i < height - indent; i++)
     for (j = indent; j < width  - indent; j++)
-        FSTF(i, j) = randf0t1() < prob
+        FLDV(i, j) = randf0t1() < prob
             ? (full_alive_only ? gens : randrange(gens - 1) + 1) : 0;
 
     /* Main program loop */
@@ -710,7 +706,7 @@ restart:
         fputs(state_colors[0], stdout);
         for (i = 0; i < height; i++) {
             for (j = 0; j < width; j++) {
-                uchar cell = FSTF(i, j);
+                uchar cell = FLDV(i, j);
                 bool has_cell = cell > 0;
                 fputs(state_colors[cell], stdout);
                 switch(mode) {
@@ -744,7 +740,7 @@ restart:
                             uchar hole = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
                             fputs(state_colors[hole ? hole : gens], stdout);
                             fputs(hole > 0 ? ALIVE_CURSOR : DEAD_CURSOR, stdout);
-                            fputs(state_colors[FSTF(i, j)], stdout);
+                            fputs(state_colors[FLDV(i, j)], stdout);
                             fputs(has_cell ? ALIVE_CELL : DEAD_CELL, stdout);
                         } else
                             fputs(has_cell ? ALIVE_CELL_BLOCK : DEAD_CELL_BLOCK, stdout);
@@ -780,10 +776,10 @@ restart:
                     switch (key) {
                         case 'r': full_alive_only = false; goto restart;
                         case 'R': full_alive_only =  true; goto restart;
-                        case 'w': move_to_up   (field_fst, width, height); break;
-                        case 's': move_to_down (field_fst, width, height); break;
-                        case 'a': move_to_left (field_fst, width, height); break;
-                        case 'd': move_to_right(field_fst, width, height); break;
+                        case 'w': move_to_up   (field, width, height); break;
+                        case 's': move_to_down (field, width, height); break;
+                        case 'a': move_to_left (field, width, height); break;
+                        case 'd': move_to_right(field, width, height); break;
                         case 'e': {
                             cursor_x = width  / 2;
                             cursor_y = height / 2;
@@ -811,10 +807,10 @@ restart:
 
                     else if (key == 'r') { mode = MODE_RECTANGLE; rect_x = cursor_x; rect_y = cursor_y; }
 
-                    else if (key == 'g') FSTF(cursor_y, cursor_x) = 0;
-                    else if (key == 'b') FSTF(cursor_y, cursor_x) = gens;
-                    else if (key == 't') FSTF(cursor_y, cursor_x) = gens - FSTF(cursor_y, cursor_x);
-                    else if (key == 'k') FSTF(cursor_y, cursor_x) = brush;
+                    else if (key == 'g') FLDV(cursor_y, cursor_x) = 0;
+                    else if (key == 'b') FLDV(cursor_y, cursor_x) = gens;
+                    else if (key == 't') FLDV(cursor_y, cursor_x) = gens - FLDV(cursor_y, cursor_x);
+                    else if (key == 'k') FLDV(cursor_y, cursor_x) = brush;
 
                     goto common_CUR_and_RECT;
                 case MODE_RECTANGLE:
@@ -823,19 +819,19 @@ restart:
                     else if (key == 'g')
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
-                            FSTF(i, j) = 0;
+                            FLDV(i, j) = 0;
                     else if (key == 'b')
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
-                            FSTF(i, j) = gens;
+                            FLDV(i, j) = gens;
                     else if (key == 't')
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
-                            FSTF(i, j) = gens - FSTF(i, j);
+                            FLDV(i, j) = gens - FLDV(i, j);
                     else if (key == 'k')
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
-                            FSTF(i, j) = brush;
+                            FLDV(i, j) = brush;
 
                     else if (key == 'c' || key == 'x') {
                         size_t rect_w = cursor_x - rect_x + 1;
@@ -848,8 +844,8 @@ restart:
                             slot->height = rect_h;
                             for (i = rect_y; i <= cursor_y; i++)
                             for (j = rect_x; j <= cursor_x; j++) {
-                                slot->array[slot->width * (i - rect_y) + (j - rect_x)] = FSTF(i, j);
-                                if (key == 'x') FSTF(i, j) = 0;
+                                slot->array[slot->width * (i - rect_y) + (j - rect_x)] = FLDV(i, j);
+                                if (key == 'x') FLDV(i, j) = 0;
                             }
                         }
                     }
@@ -870,10 +866,7 @@ restart:
                         case 'j': if (brush >    0) { brush -= 1; } break;
                         case 'l': if (brush < gens) { brush += 1; } break;
 
-                        case 'C':
-                            memset(field_fst, 0, width * height);
-                            memset(field_snd, 0, width * height);
-                            break;
+                        case 'C': memset(field, 0, width * height); break;
 
                         case 'e': mode = MODE_PAUSE; PUT_BAR_PAUSE; break;
                     }
@@ -908,13 +901,13 @@ restart:
                         case 'p':
                             for (i = cursor_y; i < cursor_y + slot->height; i++)
                             for (j = cursor_x; j < cursor_x + slot-> width; j++)
-                                FSTF(i, j) = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
+                                FLDV(i, j) = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
                             break;
                         case 'o':
                             for (i = cursor_y; i < cursor_y + slot->height; i++)
                             for (j = cursor_x; j < cursor_x + slot-> width; j++)
                                 if (slot->array[slot->width * (i - cursor_y) + (j - cursor_x)] > 0)
-                                    FSTF(i, j) = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
+                                    FLDV(i, j) = slot->array[slot->width * (i - cursor_y) + (j - cursor_x)];
                             break;
 
                         case 'e': mode = MODE_CURSOR; PUT_BAR_CURSOR; break;
@@ -925,12 +918,12 @@ restart:
 
         /* Update current field */
         if (mode == MODE_SIMULATION || mode == MODE_ONESTEP) {
-            memcpy(&FSTF(height + 0, 0), &FSTF(         0, 0), width); /* save first line after last */
-            memcpy(&FSTF(height + 1, 0), &FSTF(height - 1, 0), width); /* update window: previous line */
-            memcpy(&FSTF(height + 2, 0), &FSTF(         0, 0), width); /* update window:  current line */
+            memcpy(FLDP(height + 0, 0), FLDP(         0, 0), width); /* save first line after last */
+            memcpy(FLDP(height + 1, 0), FLDP(height - 1, 0), width); /* update window: previous line */
+            memcpy(FLDP(height + 2, 0), FLDP(         0, 0), width); /* update window:  current line */
             for (i = 0; i < height; i++) {
                 for (j = 0; j < width; j++)
-                    if (FSTF(i, j) == 0 || FSTF(i, j) == gens) {
+                    if (FLDV(i, j) == 0 || FLDV(i, j) == gens) {
                         ulong cnt = 0;
 
                         size_t jl = j > 0 ? j - 1 : width - 1;
@@ -939,18 +932,18 @@ restart:
                         size_t ic = height + 2;
                         size_t in = i + 1;
 
-                        cnt += FSTF(ip, jl) == gens; cnt += FSTF(ip, j) == gens; cnt += FSTF(ip, jr) == gens;
-                        cnt += FSTF(ic, jl) == gens;                             cnt += FSTF(ic, jr) == gens;
-                        cnt += FSTF(in, jl) == gens; cnt += FSTF(in, j) == gens; cnt += FSTF(in, jr) == gens;
+                        cnt += FLDV(ip, jl) == gens; cnt += FLDV(ip, j) == gens; cnt += FLDV(ip, jr) == gens;
+                        cnt += FLDV(ic, jl) == gens;                             cnt += FLDV(ic, jr) == gens;
+                        cnt += FLDV(in, jl) == gens; cnt += FLDV(in, j) == gens; cnt += FLDV(in, jr) == gens;
 
-                        if (FSTF(ic, j) == gens)
-                            FSTF(i, j) -= ((bsmask & (1ul << (cnt + 9))) == 0);
-                        else
-                            FSTF(i, j) = bsmask & (1ul << cnt) ? gens : 0;
+                        if (FLDV(ic, j) == gens)
+                            FLDV(i, j) -= ((bsmask & (1ul << (cnt + 9))) == 0);
+                        else if (bsmask & (1ul << cnt))
+                            FLDV(i, j) = gens;
                     } else
-                        FSTF(i, j) -= 1;
-                memcpy(&FSTF(height + 1, 0), &FSTF(height + 2, 0), width); /* move current line to previous */
-                memcpy(&FSTF(height + 2, 0), &FSTF(     i + 1, 0), width); /* copy next line into current */
+                        FLDV(i, j) -= 1;
+                memcpy(FLDP(height + 1, 0), FLDP(height + 2, 0), width); /* move current line to previous */
+                memcpy(FLDP(height + 2, 0), FLDP(     i + 1, 0), width); /* copy next line into current */
             }
         }
 
@@ -965,8 +958,7 @@ error:
     for (i = 0; i < COUNT_TEMPLATE_SLOT; i++)
         if (template_slots[i].width || template_slots[i].height)
             free(template_slots[i].array);
-    free(field_fst);
-    free(field_snd);
+    free(field);
     return rc;
 }
 
@@ -977,14 +969,6 @@ error:
 float randf0t1(void) { return (float)rand() / (float)RAND_MAX; }
 
 uchar randrange(uchar max) { return rand() % (max + 1); }
-
-size_t prev_size_t(size_t value, ulong len) {
-    if (value == 0) return len - 1; else return value - 1;
-}
-
-size_t next_size_t(size_t value, ulong len) {
-    if (value == len - 1) return 0; else return value + 1;
-}
 
 ulong parse_rule(const char* str, uchar* gens) {
     ulong mask = 0, digit, number;
