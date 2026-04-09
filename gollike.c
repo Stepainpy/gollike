@@ -484,7 +484,7 @@ int main(int argc, char** argv) {
     /* Parameters of simulation */
     ulong width, height, indent, bsmask;
     char rule[MAX_RULE_LENGTH + 1];
-    float prob; uchar gens;
+    float prob; uchar gens, brush;
 
     bool full_alive_only = false;
 
@@ -647,6 +647,7 @@ int main(int argc, char** argv) {
         bsmask = parse_rule(DEFAULT_RULE, &gens);
         strcpy(rule, DEFAULT_RULE);
     }
+    brush = gens;
 
     /* Checking colors for states */
     if (colors_is_set && strlen(state_colors[gens]) == 0)
@@ -806,6 +807,7 @@ restart:
                     else if (key == 'g') FSTF(cursor_y, cursor_x) = 0;
                     else if (key == 'b') FSTF(cursor_y, cursor_x) = gens;
                     else if (key == 't') FSTF(cursor_y, cursor_x) = gens - FSTF(cursor_y, cursor_x);
+                    else if (key == 'k') FSTF(cursor_y, cursor_x) = brush;
 
                     goto common_CUR_and_RECT;
                 case MODE_RECTANGLE:
@@ -823,6 +825,10 @@ restart:
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
                             FSTF(i, j) = gens - FSTF(i, j);
+                    else if (key == 'k')
+                        for (i = rect_y; i <= cursor_y; i++)
+                        for (j = rect_x; j <= cursor_x; j++)
+                            FSTF(i, j) = brush;
 
                     else if (key == 'c' || key == 'x') {
                         size_t rect_w = cursor_x - rect_x + 1;
@@ -853,6 +859,9 @@ restart:
                         case 'S': if (cursor_y < height - 10 ) { cursor_y += 10; } break;
                         case 'A': if (rect_x + 10 <= cursor_x) { cursor_x -= 10; } break;
                         case 'D': if (cursor_x < width  - 10 ) { cursor_x += 10; } break;
+
+                        case 'j': if (brush >    0) { brush -= 1; } break;
+                        case 'l': if (brush < gens) { brush += 1; } break;
 
                         case 'C':
                             memset(field_fst, 0, width * height);
