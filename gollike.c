@@ -168,7 +168,7 @@ typedef unsigned char bool;
     "    P - Set/unset pause"                             "\n" \
     "    O - Make one simulation step in pause"           "\n" \
 
-#define HELPMSG_KEYS_EDIT \
+#define HELPMSG_KEYS_EDIT_PT1 \
     "  Edit mode:"                                        "\n" \
     "  S+W - Move the camera/cursor up 10 step"           "\n" \
     "  S+S - Move the camera/cursor down 10 step"         "\n" \
@@ -176,13 +176,18 @@ typedef unsigned char bool;
     "  S+D - Move the camera/cursor to the right 10 step" "\n" \
     "    R - Enable/disable rectagular selection"         "\n" \
     "  S+C - Clear all field"                             "\n" \
-    "    G - Make the cell dead"                          "\n" \
-    "    B - Make the cell alive"                         "\n" \
-    "    T - Toggle the cell state"                       "\n" \
-    "    C - Copy selected area to buffer"                "\n" \
-    "    X - Cut selected area to buffer"                 "\n" \
-    "    0 - Enable template from buffer"                 "\n" \
-    "  1-9 - Enable template with number #"               "\n" \
+
+#define HELPMSG_KEYS_EDIT_PT2 \
+    "    G - Make the cell dead"            "\n" \
+    "    B - Make the cell alive"           "\n" \
+    "    T - Toggle the cell state"         "\n" \
+    "    K - Make cell with value of brush" "\n" \
+    "    J - Decrement brush value"         "\n" \
+    "    L - increment brush value"         "\n" \
+    "    C - Copy selected area to buffer"  "\n" \
+    "    X - Cut selected area to buffer"   "\n" \
+    "    0 - Enable template from buffer"   "\n" \
+    "  1-9 - Enable template with number #" "\n" \
 
 #define HELPMSG_KEYS_TEMPLATE \
     "  Template mode:"                                           "\n" \
@@ -356,8 +361,8 @@ typedef unsigned char bool;
 
 #define MODE_TXT_SIMULATION   "SIMULATION"
 #define MODE_TXT_PAUSE        "PAUSE"
-#define MODE_TXT_CURSOR       "CURSOR: %lu %lu"
-#define MODE_TXT_RECTANGLE    "RECTANGLE: %lu %lu"
+#define MODE_TXT_CURSOR       "CURSOR: %lux%lu %u"
+#define MODE_TXT_RECTANGLE    "RECTANGLE: %lux%lu"
 #define MODE_TXT_TEMPLATE     "TEMPLATE #%lu"
 #define MODE_TXT_TEMPLATE_BUF "TEMPLATE BUFFER"
 
@@ -366,7 +371,7 @@ typedef unsigned char bool;
 #define PUT_BAR_PAUSE        do { CLEAR_BAR; fputs(LVER_BAR" "MODE_TXT_PAUSE       " "RVER_BAR, stdout); } while (0)
 #define PUT_BAR_TEMPLATE_BUF do { CLEAR_BAR; fputs(LVER_BAR" "MODE_TXT_TEMPLATE_BUF" "RVER_BAR, stdout); } while (0)
 #define PUT_BAR_CURSOR do { CLEAR_BAR; \
-    printf(LVER_BAR" "MODE_TXT_CURSOR" "RVER_BAR, cursor_x, cursor_y); \
+    printf(LVER_BAR" "MODE_TXT_CURSOR" "RVER_BAR, cursor_x, cursor_y, brush); \
 } while (0)
 #define PUT_BAR_RECTANGLE do { CLEAR_BAR; \
     printf(LVER_BAR" "MODE_TXT_RECTANGLE" "RVER_BAR, \
@@ -384,7 +389,7 @@ static_assert(strlitlen(HOR_BAR_LINE) / strlitlen(HOR_BAR) == 2 * MIN_FIELD_WIDT
 
 static_assert(strlitlen(MODE_TXT_SIMULATION  ) + 6 <= 2 * MIN_FIELD_WIDTH);
 static_assert(strlitlen(MODE_TXT_PAUSE       ) + 6 <= 2 * MIN_FIELD_WIDTH);
-static_assert(strlitlen(MODE_TXT_CURSOR      ) + 6 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_CURSOR      ) + 7 <= 2 * MIN_FIELD_WIDTH);
 static_assert(strlitlen(MODE_TXT_RECTANGLE   ) + 6 <= 2 * MIN_FIELD_WIDTH);
 static_assert(strlitlen(MODE_TXT_TEMPLATE    ) + 4 <= 2 * MIN_FIELD_WIDTH);
 static_assert(strlitlen(MODE_TXT_TEMPLATE_BUF) + 6 <= 2 * MIN_FIELD_WIDTH);
@@ -528,7 +533,8 @@ int main(int argc, char** argv) {
                            fputs(HELPMSG_OPTIONS_PT2         , stdout);
             putchar('\n'); fputs(HELPMSG_KEYS_COMMON         , stdout);
             putchar('\n'); fputs(HELPMSG_KEYS_SIM            , stdout);
-            putchar('\n'); fputs(HELPMSG_KEYS_EDIT           , stdout);
+            putchar('\n'); fputs(HELPMSG_KEYS_EDIT_PT1       , stdout);
+                           fputs(HELPMSG_KEYS_EDIT_PT2       , stdout);
             putchar('\n'); fputs(HELPMSG_KEYS_TEMPLATE       , stdout);
             putchar('\n'); fputs(HELPMSG_RULE_SYNTAX         , stdout);
             putchar('\n'); fputs(HELPMSG_RULE_EXAMPLE        , stdout);
