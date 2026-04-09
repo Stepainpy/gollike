@@ -27,6 +27,7 @@
 #  include <unistd.h>
 #endif
 
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -39,6 +40,14 @@
 typedef unsigned char bool;
 #  define false 0
 #  define true  1
+#endif
+
+#if UINT_MAX < 0xFFFFFFFFul
+typedef unsigned long bit32_t;
+#define BIT32_C(lit) lit ## ul
+#else
+typedef unsigned bit32_t;
+#define BIT32_C(lit) lit ## u
 #endif
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -121,9 +130,13 @@ typedef unsigned char bool;
 } while (0)
 
 #define strlitlen(literal) (sizeof(literal) - 1)
-#define   shift_arg() (--argc, *argv++)
-#define unshift_arg() (++argc, --argv)
-#define min(a, b)     ((a) < (b) ? (a) : (b))
+#define   shift_arg()      (--argc, *argv++)
+#define unshift_arg()      (++argc, --argv)
+#define min(a, b)          ((a) < (b) ? (a) : (b))
+#define countbit32(bits)   (((bits) + 31) / 32)
+
+#define bit32_get(bs, i) (((bs)[(i) / 32] >> ((i) % 32)) & 1)
+#define bit32_set(bs, i) do { (bs)[(i) / 32] |= BIT32_C(1) << ((i) % 32); } while (0)
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                                Help message                               *
@@ -449,9 +462,6 @@ static char state_colors[256][16] = {0};
 float randf0t1(void);
 uchar randrange(uchar max);
 
-size_t prev_size_t(size_t value, ulong len);
-size_t next_size_t(size_t value, ulong len);
-
 ulong parse_rule(const char* str, uchar* gens);
 template_t parse_rle(const char* rle, uchar gens, ulong width, ulong height);
 void normalization_rule(char* rule, ulong mask, uchar gens);
@@ -466,7 +476,7 @@ void move_to_right(uchar* field, size_t width, size_t heigth);
 void flip_horizontally(template_t* tmpl);
 void flip_vertically  (template_t* tmpl);
 void rotate_by_180deg (template_t* tmpl);
-void transpose        (template_t* tmpl);
+void transpose(template_t* tmpl, bit32_t* bitset);
 
 bool get_console_size(ulong* width, ulong* height);
 void sleep_ms(ulong ms);
@@ -503,7 +513,10 @@ int main(int argc, char** argv) {
     /* Slots with pattern for paste */
     template_t template_slots[COUNT_TEMPLATE_SLOT] = {0};
 
-    /* array with field */
+    /* Bitset for use in transpose */
+    bit32_t* bitset = NULL;
+
+    /* Array with field */
     uchar* field = NULL;
 #define FLDV(i, j) field[width * (i) + (j)]
 #define FLDP(i, j) (field + width * (i) + (j))
@@ -674,6 +687,10 @@ int main(int argc, char** argv) {
     /* additional lines for moving of field and correct updating */
     field = malloc(width * (height + 3));
     if (!field) error_msg("couldn't allocate memory");
+
+    /* Allocation memory for bitset */
+    bitset = malloc(countbit32(width * height));
+    if (!bitset) error_msg("couldn't allocate memory");
 
     /* Setup terminal */
 #if defined(__linux__)
@@ -889,14 +906,19 @@ restart:
                         case 'f': flip_horizontally(slot); break;
                         case 'F': flip_vertically  (slot); break;
                         case 'g': rotate_by_180deg (slot); break;
-                        case 'r':
-                            transpose(slot);
+
+                        case 'r': if (slot->height <= width && slot->width <= height) {
+                            transpose(slot, bitset);
                             flip_horizontally(slot);
-                            break;
-                        case 'R':
+                            cursor_x = min(cursor_x,  width - slot-> width);
+                            cursor_y = min(cursor_y, height - slot->height);
+                        } break;
+                        case 'R': if (slot->height <= width && slot->width <= height) {
                             flip_horizontally(slot);
-                            transpose(slot);
-                            break;
+                            transpose(slot, bitset);
+                            cursor_x = min(cursor_x,  width - slot-> width);
+                            cursor_y = min(cursor_y, height - slot->height);
+                        } break;
 
                         case 'p':
                             for (i = cursor_y; i < cursor_y + slot->height; i++)
@@ -959,6 +981,7 @@ error:
         if (template_slots[i].width || template_slots[i].height)
             free(template_slots[i].array);
     free(field);
+    free(bitset);
     return rc;
 }
 
@@ -1179,7 +1202,7 @@ void rotate_by_180deg(template_t* tmpl) {
     }
 }
 
-void transpose(template_t* tmpl) {
+void transpose(template_t* tmpl, bit32_t* bitset) {
     ulong temp, i, j;
     if (tmpl->width == 1 || tmpl->height == 1) {
         temp = tmpl->width;
@@ -1193,7 +1216,25 @@ void transpose(template_t* tmpl) {
             tmpl->array[tmpl->width * j + i] = temp;
         }
     } else {
-        /* TODO: transpose for M != N */
+        /* Algorithm: https://stackoverflow.com/a/9320349*/
+        const ulong size = tmpl->width * tmpl->height;
+        const ulong sizem1 = size - 1;
+        ulong cycle = 0;
+        memset(bitset, 0, countbit32(size) * sizeof *bitset);
+        while (++cycle != size) {
+            i = cycle;
+            if (bit32_get(bitset, i)) continue;
+            do {
+                i = i == sizem1 ? sizem1 : (tmpl->height * i) % sizem1;
+                temp = tmpl->array[i];
+                tmpl->array[i] = tmpl->array[cycle];
+                tmpl->array[cycle] = temp;
+                bit32_set(bitset, i);
+            } while (i != cycle);
+        }
+        temp = tmpl->width;
+        tmpl->width = tmpl->height;
+        tmpl->height = temp;
     }
 }
 
