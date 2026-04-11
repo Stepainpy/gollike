@@ -1,4 +1,4 @@
-.PHONY: clean
+.PHONY: all clean
 
 CC = gcc
 CFLAGS += -O2 -std=c89 -s
@@ -11,8 +11,10 @@ else
 EXE = $(NAME)
 endif
 
-$(EXE): $(NAME).c
-	$(CC) -o $@ $^ $(CFLAGS)
+all: $(EXE)
 
 clean:
 	rm -f $(EXE)
+
+$(EXE): $(NAME).c
+	$(CC) -o $@ $^ $(CFLAGS)
