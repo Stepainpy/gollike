@@ -177,18 +177,18 @@ typedef unsigned bit32_t;
 #define HELPMSG_KEYS_SIM \
     "  Simulation mode:"                                  "\n" \
     "    R - Reset simulation"                            "\n" \
-    "  S+R - Reset simulation with only full alive cells" "\n" \
+    " Sh-R - Reset simulation with only full alive cells" "\n" \
     "    P - Set/unset pause"                             "\n" \
     "    O - Make one simulation step in pause"           "\n" \
 
 #define HELPMSG_KEYS_EDIT_PT1 \
     "  Edit mode:"                                        "\n" \
-    "  S+W - Move the camera/cursor up 10 step"           "\n" \
-    "  S+S - Move the camera/cursor down 10 step"         "\n" \
-    "  S+A - Move the camera/cursor to the left 10 step"  "\n" \
-    "  S+D - Move the camera/cursor to the right 10 step" "\n" \
+    " Sh-W - Move the camera/cursor up 10 step"           "\n" \
+    " Sh-S - Move the camera/cursor down 10 step"         "\n" \
+    " Sh-A - Move the camera/cursor to the left 10 step"  "\n" \
+    " Sh-D - Move the camera/cursor to the right 10 step" "\n" \
     "    R - Enable/disable rectagular selection"         "\n" \
-    "  S+C - Clear all field"                             "\n" \
+    " Sh-C - Clear all field"                             "\n" \
 
 #define HELPMSG_KEYS_EDIT_PT2 \
     "    G - Make the cell dead"            "\n" \
@@ -208,10 +208,10 @@ typedef unsigned bit32_t;
     "    P - Paste template and rewrite all cells in rect area"  "\n" \
     "    O - Overlay template with write only alive cells"       "\n" \
     "    F - Flip template by horizontal"                        "\n" \
-    "  S+F - Flip template by vertical"                          "\n" \
+    " Sh-F - Flip template by vertical"                          "\n" \
     "    G - 180 degree rotation of template"                    "\n" \
     "    R - 90 degree rotation by clockwise of template"        "\n" \
-    "  S+R - 90 degree rotation by counterclockwise of template" "\n" \
+    " Sh-R - 90 degree rotation by counterclockwise of template" "\n" \
 
 #define HELPMSG_RULE_SYNTAX \
     "RULE SYNTAX:"                                                 "\n" \
