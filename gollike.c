@@ -152,7 +152,7 @@ typedef unsigned bit32_t;
 
 #define HELPMSG_OPTIONS_PT1 \
     "OPTIONS:"                                                                              "\n" \
-    "    -H, --help                    Outputs this message and terminates the program"     "\n" \
+    "        --help                    Outputs this message and terminates the program"     "\n" \
     "    -a, --autofit                 Sets width and height of field from size of console" "\n" \
     "    -w, --width  <integer>        Sets width of field"                                 "\n" \
     "    -h, --height <integer>        Sets height of field"                                "\n" \
@@ -537,8 +537,7 @@ int main(int argc, char** argv) {
         char* arg = shift_arg(); /* always argument or NULL, no UB */
         char* end;
 
-        /*  */ if (strcmp(opt, "-H") == 0 || strcmp(opt, "--help") == 0) {
-
+        if (strcmp(opt, "--help") == 0) {
             putchar('\n'); fputs(HELPMSG_NAME                , stdout);
             putchar('\n'); fputs(HELPMSG_USAGE               , stdout);
             putchar('\n'); fputs(HELPMSG_OPTIONS_PT1         , stdout);
@@ -568,8 +567,8 @@ int main(int argc, char** argv) {
                            fputs("    "COLORFACE_R4_BL       , stdout); puts(ESC"0m");
                            fputs("    "COLORFACE_R5_BL       , stdout); puts(ESC"0m");
                            fputs(HELPMSG_COLORS_PT2          , stdout);
-            putchar('\n'); return 0; /* <- premature exit */
-
+            putchar('\n');
+            return 0; /* <- premature exit */
         } else if (strcmp(opt, "-a") == 0 || strcmp(opt, "--autofit") == 0) {
             if ( width_is_set) error_msg( "width value has already been set");
             if (height_is_set) error_msg("height value has already been set");
