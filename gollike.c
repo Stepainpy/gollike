@@ -167,51 +167,51 @@ typedef unsigned bit32_t;
 #define HELPMSG_KEYS_COMMON \
     "CONTROL KEYS:"                               "\n" \
     "  All mode:"                                 "\n" \
-    "    Q - Quit from program"                   "\n" \
-    "    E - Switch to edit/simulation mode"      "\n" \
-    "    W - Move the camera/cursor up"           "\n" \
-    "    S - Move the camera/cursor down"         "\n" \
-    "    A - Move the camera/cursor to the left"  "\n" \
-    "    D - Move the camera/cursor to the right" "\n" \
+    "    Q   Quit from program"                   "\n" \
+    "    E   Switch to edit/simulation mode"      "\n" \
+    "    W   Move the camera/cursor up"           "\n" \
+    "    S   Move the camera/cursor down"         "\n" \
+    "    A   Move the camera/cursor to the left"  "\n" \
+    "    D   Move the camera/cursor to the right" "\n" \
 
 #define HELPMSG_KEYS_SIM \
     "  Simulation mode:"                                  "\n" \
-    "    R - Reset simulation"                            "\n" \
-    " Sh-R - Reset simulation with only full alive cells" "\n" \
-    "    P - Set/unset pause"                             "\n" \
-    "    O - Make one simulation step in pause"           "\n" \
+    "    R   Reset simulation"                            "\n" \
+    " Sh-R   Reset simulation with only full alive cells" "\n" \
+    "    P   Set/unset pause"                             "\n" \
+    "    O   Make one simulation step in pause"           "\n" \
 
 #define HELPMSG_KEYS_EDIT_PT1 \
     "  Edit mode:"                                        "\n" \
-    " Sh-W - Move the camera/cursor up 10 step"           "\n" \
-    " Sh-S - Move the camera/cursor down 10 step"         "\n" \
-    " Sh-A - Move the camera/cursor to the left 10 step"  "\n" \
-    " Sh-D - Move the camera/cursor to the right 10 step" "\n" \
-    "    R - Enable/disable rectagular selection"         "\n" \
-    " Sh-C - Clear all field"                             "\n" \
+    " Sh-W   Move the camera/cursor up 10 step"           "\n" \
+    " Sh-S   Move the camera/cursor down 10 step"         "\n" \
+    " Sh-A   Move the camera/cursor to the left 10 step"  "\n" \
+    " Sh-D   Move the camera/cursor to the right 10 step" "\n" \
+    "    R   Enable/disable rectagular selection"         "\n" \
+    " Sh-C   Clear all field"                             "\n" \
 
 #define HELPMSG_KEYS_EDIT_PT2 \
-    "    G - Make the cell dead"            "\n" \
-    "    B - Make the cell alive"           "\n" \
-    "    T - Toggle the cell state"         "\n" \
-    "    K - Make cell with value of brush" "\n" \
-    "    J - Decrement brush value"         "\n" \
-    "    L - increment brush value"         "\n" \
-    "    C - Copy selected area to buffer"  "\n" \
-    "    X - Cut selected area to buffer"   "\n" \
-    "    0 - Enable template from buffer"   "\n" \
-    "  1-9 - Enable template with number #" "\n" \
+    "    G   Make the cell dead"            "\n" \
+    "    B   Make the cell alive"           "\n" \
+    "    T   Toggle the cell state"         "\n" \
+    "    K   Make cell with value of brush" "\n" \
+    "    J   Decrement brush value"         "\n" \
+    "    L   increment brush value"         "\n" \
+    "    C   Copy selected area to buffer"  "\n" \
+    "    X   Cut selected area to buffer"   "\n" \
+    "    0   Enable template from buffer"   "\n" \
+    "  1-9   Enable template with number #" "\n" \
 
 #define HELPMSG_KEYS_TEMPLATE \
     "  Template mode:"                                           "\n" \
-    "    E - Exit from template mode"                            "\n" \
-    "    P - Paste template and rewrite all cells in rect area"  "\n" \
-    "    O - Overlay template with write only alive cells"       "\n" \
-    "    F - Flip template by horizontal"                        "\n" \
-    " Sh-F - Flip template by vertical"                          "\n" \
-    "    G - 180 degree rotation of template"                    "\n" \
-    "    R - 90 degree rotation by clockwise of template"        "\n" \
-    " Sh-R - 90 degree rotation by counterclockwise of template" "\n" \
+    "    E   Exit from template mode"                            "\n" \
+    "    P   Paste template and rewrite all cells in rect area"  "\n" \
+    "    O   Overlay template with write only alive cells"       "\n" \
+    "    F   Flip template by horizontal"                        "\n" \
+    " Sh-F   Flip template by vertical"                          "\n" \
+    "    G   180 degree rotation of template"                    "\n" \
+    "    R   90 degree rotation by clockwise of template"        "\n" \
+    " Sh-R   90 degree rotation by counterclockwise of template" "\n" \
 
 #define HELPMSG_RULE_SYNTAX \
     "RULE SYNTAX:"                                                 "\n" \
