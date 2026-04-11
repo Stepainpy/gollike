@@ -151,18 +151,18 @@ typedef unsigned bit32_t;
     "  $ gollike [OPTIONS]" "\n" \
 
 #define HELPMSG_OPTIONS_PT1 \
-    "OPTIONS:"                                                                              "\n" \
-    "        --help                    Outputs this message and terminates the program"     "\n" \
-    "    -a, --autofit                 Sets width and height of field from size of console" "\n" \
-    "    -w, --width  <integer>        Sets width of field"                                 "\n" \
-    "    -h, --height <integer>        Sets height of field"                                "\n" \
-    "    -i, --indent <integer>        Sets indent from border for spawning cells"          "\n" \
+    "OPTIONS:"                                                                             "\n" \
+    "        --help                   Outputs this message and terminates the program"     "\n" \
+    "    -a, --autofit                Sets width and height of field from size of console" "\n" \
+    "    -w, --width  <integer>       Sets width of field"                                 "\n" \
+    "    -h, --height <integer>       Sets height of field"                                "\n" \
+    "    -i, --indent <integer>       Sets indent from border for spawning cells"          "\n" \
 
 #define HELPMSG_OPTIONS_PT2 \
-    "    -r, --rule <string>           Sets a rule for a cellular automaton, using the format described below"   "\n" \
-    "    -c, --colors <string>         Sets palette for drawing cell states, using format described below"       "\n" \
-    "    -p, --probability <number>    Sets the probability of a cell appearing at the beginning and at restart" "\n" \
-    "    -1, -2, ..., -9 <string>      Sets a template in slot #, using format described below"                  "\n" \
+    "    -r, --rule <string>          Sets a rule for a cellular automaton, using the format described below"   "\n" \
+    "    -c, --colors <string>        Sets palette for drawing cell states, using format described below"       "\n" \
+    "    -p, --probability <number>   Sets the probability of a cell appearing at the beginning and at restart" "\n" \
+    "    -1, -2, ..., -9 <string>     Sets a template in slot #, using format described below"                  "\n" \
 
 #define HELPMSG_KEYS_COMMON \
     "CONTROL KEYS:"                               "\n" \
