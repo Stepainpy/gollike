@@ -86,13 +86,13 @@ typedef unsigned bit32_t;
 #define  DEAD_CURSOR_BLOCK DEAD_CURSOR DEAD_CURSOR
 #define ALIVE_CURSOR_BLOCK ALIVE_CURSOR ALIVE_CURSOR
 
-#define MIN_FIELD_WIDTH  25
+#define MIN_FIELD_WIDTH  22
 #define MIN_FIELD_HEIGHT 1
 #define MAX_FIELD_WIDTH  1000
 #define MAX_FIELD_HEIGHT 1000
 
 #define DEFAULT_RULE   "B3/S23/G2"
-#define DEFAULT_PROB   0.5
+#define DEFAULT_PROB   50
 #define DEFAULT_WIDTH  50
 #define DEFAULT_HEIGHT 25
 #define DEFAULT_INDENT 0
@@ -151,20 +151,20 @@ typedef unsigned bit32_t;
     "  $ gollike [OPTIONS]" "\n" \
 
 #define HELPMSG_OPTIONS_PT1 \
-    "OPTIONS:"                                                                             "\n" \
-    "    -a, --autofit                Sets width and height of field from size of console" "\n" \
-    "    -w, --width  <integer>       Sets width of field"                                 "\n" \
-    "    -h, --height <integer>       Sets height of field"                                "\n" \
-    "    -i, --indent <integer>       Sets indent from border for spawning cells"          "\n" \
+    "OPTIONS:"                                                                           "\n" \
+    "    -a, --autofit              Sets width and height of field from size of console" "\n" \
+    "    -w, --width  <integer>     Sets width of field"                                 "\n" \
+    "    -h, --height <integer>     Sets height of field"                                "\n" \
+    "    -i, --indent <integer>     Sets indent from border for spawning cells"          "\n" \
 
 #define HELPMSG_OPTIONS_PT2 \
-    "    -r, --rule <string>          Sets a rule for a cellular automaton, using the format described below"   "\n" \
-    "    -c, --colors <string>        Sets palette for drawing cell states, using format described below"       "\n" \
-    "    -p, --probability <number>   Sets the probability of a cell appearing at the beginning and at restart" "\n" \
-    "    -1, -2, ..., -9 <string>     Sets a template in slot #, using format described below"                  "\n" \
+    "    -r, --rule <string>        Sets a rule for a cellular automaton, using the format described below"   "\n" \
+    "    -c, --colors <string>      Sets palette for drawing cell states, using format described below"       "\n" \
+    "    -p, --probability <1-99>   Sets the probability of a cell appearing at the beginning and at restart" "\n" \
+    "    -1, -2, ..., -9 <string>   Sets a template in slot #, using format described below"                  "\n" \
 
 #define HELPMSG_OPTIONS_PT3 \
-    "        --help                   Outputs this message and quit" "\n" \
+    "        --help                 Outputs this message and quit" "\n" \
 
 #define HELPMSG_KEYS_COMMON \
     "CONTROL KEYS:"                               "\n" \
@@ -370,12 +370,12 @@ typedef unsigned bit32_t;
     HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR \
     HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR \
     HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR \
-    HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR HOR_BAR \
+    HOR_BAR HOR_BAR HOR_BAR HOR_BAR
 
-/* Maximum width case  * * * * * * * * * * * * * * * * *
- * -< B012345678/S012345678/G256 | 1000x1000/0.999 >-  *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-#define INFOFMT " %s " VER_BAR " %lux%lu/%.3f "
+/* Maximum min-width case  * * * * * * * * * * * *
+ * -< B012345678/S012345678/G256 | DDxDD/99% >-  *
+ * * * * * * * * * * * * * * * * * * * * * * * * */
+#define INFOFMT " %s " VER_BAR " %lux%lu/%lu%% "
 
 #define MODE_TXT_SIMULATION   "SIMULATION"
 #define MODE_TXT_PAUSE        "PAUSE"
@@ -499,7 +499,8 @@ static char output_buffer[8 * 1024];
 #endif
 
 int main(int argc, char** argv) {
-    size_t i, j; int rc = EXIT_FAILURE;
+    size_t i, j; ulong prob_int;
+    int rc = EXIT_FAILURE;
 
     /* Parameters of simulation */
     ulong width, height, indent, bsmask;
@@ -605,8 +606,8 @@ int main(int argc, char** argv) {
             if (prob_is_set) error_msg("probability value has already been set");
             prob_is_set = true;
 
-            prob = strtod(arg, &end);
-            if (*end != '\0' || prob != prob || prob < 0.001 || prob > 0.999)
+            prob_int = strtoul(arg, &end, 10);
+            if (*end != '\0' || prob_int < 1 || prob_int > 99)
                 error_msg("incorrect value for probability");
         } else if (strcmp(opt, "-w") == 0 || strcmp(opt, "--width") == 0) {
             if (!arg) error_msg("not enough arguments for option");
@@ -664,14 +665,16 @@ int main(int argc, char** argv) {
     }
 
     /* Set default value for parameters */
-    if (!  prob_is_set) prob   = DEFAULT_PROB;
-    if (! width_is_set) width  = DEFAULT_WIDTH;
-    if (!height_is_set) height = DEFAULT_HEIGHT;
-    if (!indent_is_set) indent = DEFAULT_INDENT;
+    if (!  prob_is_set) prob_int = DEFAULT_PROB;
+    if (! width_is_set) width    = DEFAULT_WIDTH;
+    if (!height_is_set) height   = DEFAULT_HEIGHT;
+    if (!indent_is_set) indent   = DEFAULT_INDENT;
     if (!  rule_is_set) {
         bsmask = parse_rule(DEFAULT_RULE, &gens);
         strcpy(rule, DEFAULT_RULE);
     }
+
+    prob = (float)prob_int / 100.f;
     brush = gens;
 
     /* Checking colors for states */
@@ -713,7 +716,7 @@ int main(int argc, char** argv) {
     /* Drawing border and information on screen */
     draw_border(width * 2, height);
     fputs(ESC"3G" LVER_BAR" "MODE_TXT_SIMULATION" "RVER_BAR, stdout);
-    printf(ESC"1;3H" LVER_BAR INFOFMT RVER_BAR, rule, width, height, prob);
+    printf(ESC"1;3H" LVER_BAR INFOFMT RVER_BAR, rule, width, height, prob_int);
 
     srand(time(NULL));
 restart: /* Initialization of fields */
