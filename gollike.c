@@ -143,8 +143,8 @@ typedef unsigned bit32_t;
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #define HELPMSG_NAME \
-    "NAME:"                                                 "\n" \
-    "    gollike - simulator of Game of Life-like automata" "\n" \
+    "NAME:"                                              "\n" \
+    "    gollike - Game of Life like automata simulator" "\n" \
 
 #define HELPMSG_USAGE \
     "USAGE:"                "\n" \
@@ -152,7 +152,6 @@ typedef unsigned bit32_t;
 
 #define HELPMSG_OPTIONS_PT1 \
     "OPTIONS:"                                                                             "\n" \
-    "        --help                   Outputs this message and terminates the program"     "\n" \
     "    -a, --autofit                Sets width and height of field from size of console" "\n" \
     "    -w, --width  <integer>       Sets width of field"                                 "\n" \
     "    -h, --height <integer>       Sets height of field"                                "\n" \
@@ -163,6 +162,9 @@ typedef unsigned bit32_t;
     "    -c, --colors <string>        Sets palette for drawing cell states, using format described below"       "\n" \
     "    -p, --probability <number>   Sets the probability of a cell appearing at the beginning and at restart" "\n" \
     "    -1, -2, ..., -9 <string>     Sets a template in slot #, using format described below"                  "\n" \
+
+#define HELPMSG_OPTIONS_PT3 \
+    "        --help                   Outputs this message and quit" "\n" \
 
 #define HELPMSG_KEYS_COMMON \
     "CONTROL KEYS:"                               "\n" \
@@ -547,6 +549,7 @@ int main(int argc, char** argv) {
             putchar('\n'); fputs(HELPMSG_USAGE               , stdout);
             putchar('\n'); fputs(HELPMSG_OPTIONS_PT1         , stdout);
                            fputs(HELPMSG_OPTIONS_PT2         , stdout);
+            putchar('\n'); fputs(HELPMSG_OPTIONS_PT3         , stdout);
             putchar('\n'); fputs(HELPMSG_KEYS_COMMON         , stdout);
             putchar('\n'); fputs(HELPMSG_KEYS_SIM            , stdout);
             putchar('\n'); fputs(HELPMSG_KEYS_EDIT_PT1       , stdout);
