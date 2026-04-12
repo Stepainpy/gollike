@@ -189,6 +189,7 @@ typedef unsigned bit32_t;
     " Sh-D   Move the camera/cursor to the right 10 step" "\n" \
     "    R   Enable/disable rectagular selection"         "\n" \
     " Sh-C   Clear all field"                             "\n" \
+    " Sh-X   Erase all except selection"                  "\n" \
 
 #define HELPMSG_KEYS_EDIT_PT2 \
     "    G   Make the cell dead"            "\n" \
@@ -848,6 +849,15 @@ restart:
                         for (i = rect_y; i <= cursor_y; i++)
                         for (j = rect_x; j <= cursor_x; j++)
                             FLDV(i, j) = brush;
+
+                    else if (key == 'X') {
+                        memset(FLDP(0, 0), 0, width * rect_y);
+                        memset(FLDP(cursor_y + 1, 0), 0, width * (height - cursor_y - 1));
+                        for (i = rect_y; i <= cursor_y; i++) {
+                            memset(FLDP(i, 0), 0, rect_x);
+                            memset(FLDP(i, cursor_x + 1), 0, width - cursor_x - 1);
+                        }
+                    }
 
                     else if (key == 'c' || key == 'x') {
                         size_t rect_w = cursor_x - rect_x + 1;
