@@ -180,6 +180,8 @@ typedef unsigned bit32_t;
     " Sh-R   Reset simulation with only full alive cells" "\n" \
     "    P   Set/unset pause"                             "\n" \
     "    O   Make one simulation step in pause"           "\n" \
+    "    F   Save current field (restore after press R)"  "\n" \
+    " Sh-F   Erase saved field"                           "\n" \
 
 #define HELPMSG_KEYS_EDIT_PT1 \
     "  Edit mode:"                                        "\n" \
@@ -503,6 +505,7 @@ int main(int argc, char** argv) {
     float prob; uchar gens, brush;
 
     bool full_alive_only = false;
+    bool field_is_saved  = false;
 
     /* Coordinates */
     ulong cursor_x = 0, cursor_y = 0;
@@ -519,6 +522,7 @@ int main(int argc, char** argv) {
 
     /* Array with field */
     uchar* field = NULL;
+    uchar* saved_field = NULL;
 #define FLDV(i, j) field[width * (i) + (j)]
 #define FLDP(i, j) (field + width * (i) + (j))
 
@@ -687,6 +691,8 @@ int main(int argc, char** argv) {
     /* additional lines for moving of field and correct updating */
     field = malloc(width * (height + 3));
     if (!field) error_msg("couldn't allocate memory");
+    saved_field = malloc(width * height);
+    if (!saved_field) error_msg("couldn't allocate memory");
 
     /* Allocation memory for bitset */
     bitset = malloc(countbit32(width * height));
@@ -707,13 +713,16 @@ int main(int argc, char** argv) {
     printf(ESC"1;3H" LVER_BAR INFOFMT RVER_BAR, rule, width, height, prob);
 
     srand(time(NULL));
-restart:
-    /* Initialization of fields */
-    memset(field, 0, width * height);
-    for (i = indent; i < height - indent; i++)
-    for (j = indent; j < width  - indent; j++)
-        FLDV(i, j) = randf0t1() < prob
-            ? (full_alive_only ? gens : randrange(gens - 1) + 1) : 0;
+restart: /* Initialization of fields */
+    if (field_is_saved)
+        memcpy(field, saved_field, width * height);
+    else {
+        memset(field, 0, width * height);
+        for (i = indent; i < height - indent; i++)
+        for (j = indent; j < width  - indent; j++)
+            FLDV(i, j) = randf0t1() < prob
+                ? (full_alive_only ? gens : randrange(gens - 1) + 1) : 0;
+    }
 
     /* Main program loop */
     while (true) {
@@ -793,10 +802,15 @@ restart:
                     switch (key) {
                         case 'r': full_alive_only = false; goto restart;
                         case 'R': full_alive_only =  true; goto restart;
+
                         case 'w': move_to_up   (field, width, height); break;
                         case 's': move_to_down (field, width, height); break;
                         case 'a': move_to_left (field, width, height); break;
                         case 'd': move_to_right(field, width, height); break;
+
+                        case 'f': field_is_saved = true; memcpy(saved_field, field, width * height); break;
+                        case 'F': field_is_saved = false; break;
+
                         case 'e': {
                             cursor_x = width  / 2;
                             cursor_y = height / 2;
@@ -990,6 +1004,7 @@ error:
         if (template_slots[i].width || template_slots[i].height)
             free(template_slots[i].array);
     free(field);
+    free(saved_field);
     free(bitset);
     return rc;
 }
