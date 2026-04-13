@@ -20,11 +20,9 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                    *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/* Without this define, usleep not defined */
 #if defined(__linux__)
 #  define _DEFAULT_SOURCE
-#  include <sys/ioctl.h>
-#  include <termios.h>
-#  include <unistd.h>
 #endif
 
 #include <limits.h>
@@ -483,20 +481,11 @@ void flip_vertically  (template_t* tmpl);
 void rotate_by_180deg (template_t* tmpl);
 void transpose(template_t* tmpl, bit32_t* bitset);
 
+void setup_terminal(void);
 bool get_console_size(ulong* width, ulong* height);
 void sleep_ms(ulong ms);
 bool is_symbol_received(void);
 int received_symbol(void);
-
-#if defined(__linux__)
-static struct termios orig_termios;
-static struct termios  new_termios;
-static int peek_char = -1;
-
-void setup_terminal(void);
-#else
-static char output_buffer[8 * 1024];
-#endif
 
 int main(int argc, char** argv) {
     size_t i, j; ulong prob_int;
@@ -704,13 +693,7 @@ int main(int argc, char** argv) {
     bitset = malloc(countbit32(width * height));
     if (!bitset) error_msg("couldn't allocate memory");
 
-    /* Setup terminal */
-#if defined(__linux__)
     setup_terminal();
-#else
-    setvbuf(stdout, output_buffer, _IOFBF, sizeof output_buffer);
-#endif
-
     fputs(ESC"?25l", stdout); /* hide cursor */
 
     /* Drawing border and information on screen */
@@ -1277,6 +1260,12 @@ void transpose(template_t* tmpl, bit32_t* bitset) {
 #include <windows.h>
 #include <conio.h>
 
+static char output_buffer[8 * 1024];
+
+void setup_terminal(void) {
+    setvbuf(stdout, output_buffer, _IOFBF, sizeof output_buffer);
+}
+
 bool get_console_size(ulong* width, ulong* height) {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     int ret = GetConsoleScreenBufferInfo(
@@ -1296,7 +1285,15 @@ bool is_symbol_received(void) { return kbhit(); }
 int received_symbol(void) { return getch(); }
 
 #elif defined(__linux__)
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
+
 /* Terminal setup: https://stackoverflow.com/a/63708756 */
+
+static struct termios orig_termios;
+static struct termios  new_termios;
+static int peek_char = -1;
 
 void reset_terminal(void) {
     tcsetattr(0, TCSANOW, &orig_termios);
