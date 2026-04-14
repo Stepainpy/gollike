@@ -288,7 +288,7 @@ typedef unsigned bit32_t;
 #define HELPMSG_COLORS_PT1 \
     "COLOR PALETTE:"                                                   "\n" \
     "  Parameter format:"                                              "\n" \
-    "    <string> is list of color identificators separeted by spaces" "\n" \
+    "    <string> is list of color identificators separeted by commas" "\n" \
     "" "\n" \
     "  Standard terminal colors:"          "\n" \
     "    " STDCLR_N ESC"0m"                "\n" \
@@ -633,9 +633,11 @@ int main(int argc, char** argv) {
                 while (isspace(*arg)) ++arg;
                 for (color_id = 0; isdigit(*arg); arg++)
                     color_id = 10 * color_id + (*arg - '0');
+                while (isspace(*arg)) ++arg;
 
-                if (*arg != '\0' && !isspace(*arg))
+                if (*arg != '\0' && *arg != ',')
                     error_msgf("unexpected character '%c' in color list", *arg);
+                else if (*arg == ',') ++arg;
                 if (color_id > 255) error_msgf("incorrect id '%lu' for color", color_id);
 
                 sprintf(state_colors[i++], ESC"38;5;%lum", color_id);
