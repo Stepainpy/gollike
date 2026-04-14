@@ -992,8 +992,7 @@ restart: /* Initialization of fields */
     rc = EXIT_SUCCESS;
 error:
     for (i = 0; i < COUNT_TEMPLATE_SLOT; i++)
-        if (template_slots[i].width || template_slots[i].height)
-            free(template_slots[i].array);
+        free(template_slots[i].array);
     free(field);
     free(saved_field);
     free(bitset);
