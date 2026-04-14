@@ -89,7 +89,7 @@ typedef unsigned bit32_t;
 #define MAX_FIELD_WIDTH  1000
 #define MAX_FIELD_HEIGHT 1000
 
-#define DEFAULT_RULE   "B3/S23/G2"
+#define DEFAULT_RULE   "B3/S23"
 #define DEFAULT_PROB   50
 #define DEFAULT_WIDTH  50
 #define DEFAULT_HEIGHT 25
@@ -1072,15 +1072,16 @@ void normalization_rule(char* rule, ulong mask, uchar gens) {
     *rule++ = 'B';
     for (i = 0; i < 9; i++, mask >>= 1)
         if (mask & 1) *rule++ = '0' + i;
-    *rule++ = '/';
 
+    *rule++ = '/';
     *rule++ = 'S';
     for (i = 0; i < 9; i++, mask >>= 1)
         if (mask & 1) *rule++ = '0' + i;
-    *rule++ = '/';
 
-    *rule++ = 'G';
-    sprintf(rule, "%i", (int)gens + 1);
+    if (gens > 1)
+        sprintf(rule, "/G%i", (int)gens + 1);
+    else
+        *rule = '\0';
 }
 
 template_t parse_rle(const char* rle, uchar gens, ulong width, ulong height) {
