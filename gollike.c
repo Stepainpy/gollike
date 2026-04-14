@@ -782,11 +782,11 @@ restart: /* Initialization of fields */
             switch (mode) {
                 /* Simulation mode */
                 case MODE_SIMULATION:
-                    /**/ if (key == 'p') { mode = MODE_PAUSE; PUT_BAR_PAUSE; }
+                    /**/ if (key == 'p' || key == ' ') { mode = MODE_PAUSE; PUT_BAR_PAUSE; }
                     goto common_SIM_and_PAUSE;
                 case MODE_PAUSE:
-                    /**/ if (key == 'p') { mode = MODE_SIMULATION; PUT_BAR_SIMULATION; }
-                    else if (key == 'o')   mode = MODE_ONESTEP;
+                    /**/ if (key == 'p' || key == ' ') { mode = MODE_SIMULATION; PUT_BAR_SIMULATION; }
+                    else if (key == 'o') mode = MODE_ONESTEP;
                     goto common_SIM_and_PAUSE;
                 case MODE_ONESTEP: /* nothing */ break;
                 common_SIM_and_PAUSE:
