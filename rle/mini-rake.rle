@@ -1,0 +1,6 @@
+#N Mini rake
+#O Stepainpy
+#C Producing diagonal spaceship
+x = 8, y = 6, rule = B2/S/G3
+2b.1go2b.1go$3b.1gob.1go$2bob.1go$
+.1gob.1go$ob.1go$b.1go!
