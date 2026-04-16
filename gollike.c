@@ -238,14 +238,14 @@ typedef unsigned bit32_t;
     "    B34/S12/G3    - Frogs"                                "\n" \
 
 #define HELPMSG_TEMPLATE_SYNTAX_PT1 \
-    "TEMPLATE SYNTAX:"                                                       "\n" \
-    "  Regex-like: <width>:<height>:(<repeate>?<tag>)*!"                     "\n" \
-    "                               \\  RLE of figure  /"                    "\n" \
-    "    <width>   - Width of template"                                      "\n" \
-    "    <height>  - Height of template"                                     "\n" \
-    "    <repeate> - Number of repetitions <tag>, greater or equal than 1"   "\n" \
-    "    <tag>     - 'b' is dead cell, 'o' is alive cell and '$' is newline" "\n" \
-    "    allows the use of whitespace characters between tags in RLE"        "\n" \
+    "TEMPLATE SYNTAX:"                                                                                "\n" \
+    "  Regex-like: <width>:<height>:(<repeate>?<tag>)*!"                                              "\n" \
+    "                               \\  RLE of figure  /"                                             "\n" \
+    "    <width>   - Width of template"                                                               "\n" \
+    "    <height>  - Height of template"                                                              "\n" \
+    "    <repeate> - Number of repetitions <tag>, greater or equal than 1"                            "\n" \
+    "    <tag>     - 'b' is dead cell, 'o' is alive cell, '$' is newline or '.<gen>g' for dying cell" "\n" \
+    "    allows the use of whitespace characters between tags in RLE"                                 "\n" \
 
 #define HELPMSG_TEMPLATE_SYNTAX_PT2 \
     "  If string start with '@' it interpretated as path to .rle file"     "\n" \
@@ -1117,23 +1117,43 @@ static template_t parse_rle_file(const char* path, uchar gens, ulong width, ulon
     if (!new.array) error_msg("couldn't allocate memory");
     memset(new.array, 0, new.width * new.height);
 
-    scanned = false;
-    while (fgets(line, sizeof line, file) && !scanned) {
+    while (fgets(line, sizeof line, file)) {
         const char* rle; char* end;
         for (rle = line; *rle != '\n'; rle++) {
-            ulong len = strtoul(rle, &end, 10);
+            ulong len, gen = 0;
+
+            len = strtoul(rle, &end, 10);
             if (end != rle) {
                 if (len == 0) error_msg("zero count for tag in rle");
-                else rle = end;
             } else
                 len = 1;
+            rle = end;
+
+            if (*rle == '.') { ++rle;
+                gen = strtoul(rle, &end, 10);
+                if (end != rle) {
+                    if (gen == 0) error_msg("zero value for generation of tag in rle");
+                    if (gen > gens) error_msg("too high value for generation of tag");
+                } else
+                    error_msg("no value for generation of tag");
+                rle = end;
+            }
 
             switch (*rle) {
                 case 'b': case 'o':
+                    if (gen) error_msg("genaration value for tag 'b' and 'o'");
                     if (x + len > new.width)
                         error_msg("the tag count is too high");
-                    while (len --> 0)
-                        new.array[new.width * y + (x++)] = *rle == 'o' ? gens : 0;
+                    memset(new.array + new.width * y + x, *rle == 'o' ? gens : 0, len);
+                    x += len;
+                break;
+
+                case 'g':
+                    if (!gen) error_msg("zero value of genaration value in tag 'g'");
+                    if (x + len > new.width)
+                        error_msg("the tag count is too high");
+                    memset(new.array + new.width * y + x, gen, len);
+                    x += len;
                 break;
 
                 case '$':
@@ -1145,7 +1165,7 @@ static template_t parse_rle_file(const char* path, uchar gens, ulong width, ulon
                 case '!':
                     if (rle[1] != '\0')
                         error_msgf("expect end of RLE, but got '%c'", rle[1]);
-                    scanned = true;
+                    goto exit;
                 break;
 
                 case  ' ': case '\r': case '\n':
@@ -1156,11 +1176,10 @@ static template_t parse_rle_file(const char* path, uchar gens, ulong width, ulon
                 case '\0': error_msg("unexpected end of RLE");
                 default: error_msgf("unexpected tag '%c' in rle", *rle);
             }
-            if (scanned) break;
         }
-        if (scanned) break;
     }
 
+exit:
     fclose(file);
     return new;
 error:
@@ -1191,19 +1210,40 @@ template_t parse_rle(const char* rle, uchar gens, ulong width, ulong height) {
     memset(new.array, 0, new.width * new.height);
 
     for (rle = end + 1; *rle != '!'; rle++) {
-        ulong len = strtoul(rle, &end, 10);
+        ulong len, gen = 0;
+
+        len = strtoul(rle, &end, 10);
         if (end != rle) {
             if (len == 0) error_msg("zero count for tag in rle");
-            else rle = end;
         } else
             len = 1;
+        rle = end;
+
+        if (*rle == '.') { ++rle;
+            gen = strtoul(rle, &end, 10);
+            if (end != rle) {
+                if (gen == 0) error_msg("zero value for generation of tag in rle");
+                if (gen > gens) error_msg("too high value for generation of tag");
+            } else
+                error_msg("no value for generation of tag");
+            rle = end;
+        }
 
         switch (*rle) {
             case 'b': case 'o':
+                if (gen) error_msg("genaration value for tag 'b' and 'o'");
                 if (x + len > new.width)
                     error_msg("the tag count is too high");
-                while (len --> 0)
-                    new.array[new.width * y + (x++)] = *rle == 'o' ? gens : 0;
+                memset(new.array + new.width * y + x, *rle == 'o' ? gens : 0, len);
+                x += len;
+            break;
+
+            case 'g':
+                if (!gen) error_msg("zero value of genaration value in tag 'g'");
+                if (x + len > new.width)
+                    error_msg("the tag count is too high");
+                memset(new.array + new.width * y + x, gen, len);
+                x += len;
             break;
 
             case '$':
