@@ -237,7 +237,7 @@ typedef unsigned bit32_t;
     "    B2/S345/G4    - Star Wars"                            "\n" \
     "    B34/S12/G3    - Frogs"                                "\n" \
 
-#define HELPMSG_TEMPLATE_SYNTAX \
+#define HELPMSG_TEMPLATE_SYNTAX_PT1 \
     "TEMPLATE SYNTAX:"                                                       "\n" \
     "  Regex-like: <width>:<height>:(<repeate>?<tag>)*!"                     "\n" \
     "                               \\  RLE of figure  /"                    "\n" \
@@ -246,6 +246,10 @@ typedef unsigned bit32_t;
     "    <repeate> - Number of repetitions <tag>, greater or equal than 1"   "\n" \
     "    <tag>     - 'b' is dead cell, 'o' is alive cell and '$' is newline" "\n" \
     "    allows the use of whitespace characters between tags in RLE"        "\n" \
+
+#define HELPMSG_TEMPLATE_SYNTAX_PT2 \
+    "  If string start with '@' it interpretated as path to .rle file"     "\n" \
+    "    Link file format: https://conwaylife.com/wiki/Run_Length_Encoded" "\n" \
 
 #define HELPMSG_TEMPLATE_EXAMPLE_PT1 \
     "  Examples:"                "\n" \
@@ -547,7 +551,8 @@ int main(int argc, char** argv) {
             putchar('\n'); fputs(HELPMSG_KEYS_TEMPLATE       , stdout);
             putchar('\n'); fputs(HELPMSG_RULE_SYNTAX         , stdout);
             putchar('\n'); fputs(HELPMSG_RULE_EXAMPLE        , stdout);
-            putchar('\n'); fputs(HELPMSG_TEMPLATE_SYNTAX     , stdout);
+            putchar('\n'); fputs(HELPMSG_TEMPLATE_SYNTAX_PT1 , stdout);
+                           fputs(HELPMSG_TEMPLATE_SYNTAX_PT2 , stdout);
             putchar('\n'); fputs(HELPMSG_TEMPLATE_EXAMPLE_PT1, stdout);
             putchar('\n'); fputs(HELPMSG_TEMPLATE_EXAMPLE_PT2, stdout);
                            fputs(HELPMSG_TEMPLATE_EXAMPLE_PT3, stdout);
@@ -1084,9 +1089,92 @@ void normalization_rule(char* rule, ulong mask, uchar gens) {
         *rule = '\0';
 }
 
+static template_t parse_rle_file(const char* path, uchar gens, ulong width, ulong height) {
+    template_t new = {0}; ulong x = 0, y = 0;
+    FILE* file; char line[256]; int scanned;
+
+    file = fopen(path, "r");
+    if (!file) error_msgf("couldn't open file '%s'", path);
+
+    while (fgets(line, sizeof line, file)) {
+        if (line[0] == '#') {
+            if (strrchr(line, '\n') == NULL)
+                error_msg("very long comment");
+            continue;
+        } else
+            break;
+    }
+    scanned = sscanf(line, "x = %lu , y = %lu , "
+        "rule = %*"stringify(MAX_RULE_LENGTH)"s", &new.width, &new.height);
+    if (scanned != 2) error_msg("couldn't read x-y-rule info");
+
+    if (new.width  == 0 || new.width  > width)
+        error_msg("incorrect value for template width");
+    if (new.height == 0 || new.height > height)
+        error_msg("incorrect value for template height");
+
+    new.array = malloc(new.width * new.height);
+    if (!new.array) error_msg("couldn't allocate memory");
+    memset(new.array, 0, new.width * new.height);
+
+    scanned = false;
+    while (fgets(line, sizeof line, file) && !scanned) {
+        const char* rle; char* end;
+        for (rle = line; *rle != '\n'; rle++) {
+            ulong len = strtoul(rle, &end, 10);
+            if (end != rle) {
+                if (len == 0) error_msg("zero count for tag in rle");
+                else rle = end;
+            } else
+                len = 1;
+
+            switch (*rle) {
+                case 'b': case 'o':
+                    if (x + len > new.width)
+                        error_msg("the tag count is too high");
+                    while (len --> 0)
+                        new.array[new.width * y + (x++)] = *rle == 'o' ? gens : 0;
+                break;
+
+                case '$':
+                    if (y + len > new.height)
+                        error_msg("the tag count is too high");
+                    y += len; x = 0;
+                break;
+
+                case '!':
+                    if (rle[1] != '\0')
+                        error_msgf("expect end of RLE, but got '%c'", rle[1]);
+                    scanned = true;
+                break;
+
+                case  ' ': case '\r': case '\n':
+                case '\t': case '\v': case '\f':
+                    /* skip whitespaces */
+                break;
+
+                case '\0': error_msg("unexpected end of RLE");
+                default: error_msgf("unexpected tag '%c' in rle", *rle);
+            }
+            if (scanned) break;
+        }
+        if (scanned) break;
+    }
+
+    fclose(file);
+    return new;
+error:
+    free(new.array);
+    memset(&new, 0, sizeof new);
+    if (file) fclose(file);
+    return new;
+}
+
 template_t parse_rle(const char* rle, uchar gens, ulong width, ulong height) {
-    template_t new = {0}; char* end;
-    ulong x = 0, y = 0;
+    template_t new = {0}; char* end; ulong x = 0, y = 0;
+
+    /* "@./rle/pattern.rle" -> parse("./rle/pattern.rle") */
+    if (rle[0] == '@') return parse_rle_file(rle + 1, gens, width, height);
 
     new.width = strtoul(rle, &end, 10);
     if (*end != ':') error_msgf("unexpected character '%c' after width", *end);
