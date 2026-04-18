@@ -386,17 +386,16 @@ typedef unsigned bit32_t;
  * * * * * * * * * * * * * * * * * * * * * * * * */
 #define INFOFMT " %s " VER_BAR " %lux%lu/%lu%% "
 
-#define MODE_TXT_SIMULATION   "SIMULATION"
-#define MODE_TXT_PAUSE        "PAUSE"
-#define MODE_TXT_CURSOR       "CURSOR: %lux%lu %u"
-#define MODE_TXT_RECTANGLE    "RECTANGLE: %lux%lu"
-#define MODE_TXT_TEMPLATE     "TEMPLATE #%lu"
-#define MODE_TXT_TEMPLATE_BUF "TEMPLATE BUFFER"
+#define MODE_TXT_SIMULATION "SIMULATION"
+#define MODE_TXT_PAUSE      "PAUSE"
+#define MODE_TXT_CURSOR     "CURSOR: %lux%lu %u"
+#define MODE_TXT_RECTANGLE  "RECTANGLE: %lux%lu"
+#define MODE_TXT_TEMPLATE   "TEMPLATE: %lux%lu #%u"
+#define MODE_TXT_CLIPBOARD  "CLIPBOARD: %lux%lu"
 
 #define CLEAR_BAR fputs(HOR_BAR_LINE ESC"3G", stdout)
-#define PUT_BAR_SIMULATION   do { CLEAR_BAR; fputs(LVER_BAR" "MODE_TXT_SIMULATION  " "RVER_BAR, stdout); } while (0)
-#define PUT_BAR_PAUSE        do { CLEAR_BAR; fputs(LVER_BAR" "MODE_TXT_PAUSE       " "RVER_BAR, stdout); } while (0)
-#define PUT_BAR_TEMPLATE_BUF do { CLEAR_BAR; fputs(LVER_BAR" "MODE_TXT_TEMPLATE_BUF" "RVER_BAR, stdout); } while (0)
+#define PUT_BAR_SIMULATION do { CLEAR_BAR; fputs(LVER_BAR" "MODE_TXT_SIMULATION" "RVER_BAR, stdout); } while (0)
+#define PUT_BAR_PAUSE      do { CLEAR_BAR; fputs(LVER_BAR" "MODE_TXT_PAUSE     " "RVER_BAR, stdout); } while (0)
 #define PUT_BAR_CURSOR do { CLEAR_BAR; \
     printf(LVER_BAR" "MODE_TXT_CURSOR" "RVER_BAR, cursor_x, cursor_y, brush); \
 } while (0)
@@ -405,7 +404,10 @@ typedef unsigned bit32_t;
         cursor_x - rect_x + 1, cursor_y - rect_y + 1); \
 } while (0)
 #define PUT_BAR_TEMPLATE do { CLEAR_BAR; \
-    printf(LVER_BAR" "MODE_TXT_TEMPLATE" "RVER_BAR, index + 1); \
+    printf(LVER_BAR" "MODE_TXT_TEMPLATE" "RVER_BAR, cursor_x, cursor_y, mode - MODE_TEMPLATE_1 + 1); \
+} while (0)
+#define PUT_BAR_CLIPBOARD do { CLEAR_BAR; \
+    printf(LVER_BAR" "MODE_TXT_CLIPBOARD" "RVER_BAR, cursor_x, cursor_y); \
 } while (0)
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -414,12 +416,12 @@ typedef unsigned bit32_t;
 
 static_assert(strlitlen(HOR_BAR_LINE) / strlitlen(HOR_BAR) == 2 * MIN_FIELD_WIDTH);
 
-static_assert(strlitlen(MODE_TXT_SIMULATION  ) + 6 <= 2 * MIN_FIELD_WIDTH);
-static_assert(strlitlen(MODE_TXT_PAUSE       ) + 6 <= 2 * MIN_FIELD_WIDTH);
-static_assert(strlitlen(MODE_TXT_CURSOR      ) + 7 <= 2 * MIN_FIELD_WIDTH);
-static_assert(strlitlen(MODE_TXT_RECTANGLE   ) + 6 <= 2 * MIN_FIELD_WIDTH);
-static_assert(strlitlen(MODE_TXT_TEMPLATE    ) + 4 <= 2 * MIN_FIELD_WIDTH);
-static_assert(strlitlen(MODE_TXT_TEMPLATE_BUF) + 6 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_SIMULATION) + 6 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_PAUSE     ) + 6 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_CURSOR    ) + 5 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_RECTANGLE ) + 6 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_TEMPLATE  ) + 5 <= 2 * MIN_FIELD_WIDTH);
+static_assert(strlitlen(MODE_TXT_CLIPBOARD ) + 6 <= 2 * MIN_FIELD_WIDTH);
 
 static_assert(strlitlen(DEFAULT_RULE) <= MAX_RULE_LENGTH);
 static_assert(MIN_FIELD_WIDTH  <= DEFAULT_WIDTH  && DEFAULT_WIDTH  <= MAX_FIELD_WIDTH );
@@ -466,7 +468,7 @@ typedef enum {
     MODE_TEMPLATE_7,
     MODE_TEMPLATE_8,
     MODE_TEMPLATE_9,
-    MODE_TEMPLATE_BUF
+    MODE_CLIPBOARD
 } mode_action_t;
 
 static char state_colors[256][16] = {0};
@@ -764,7 +766,7 @@ restart: /* Initialization of fields */
                     case MODE_TEMPLATE_1: case MODE_TEMPLATE_2: case MODE_TEMPLATE_3:
                     case MODE_TEMPLATE_4: case MODE_TEMPLATE_5: case MODE_TEMPLATE_6:
                     case MODE_TEMPLATE_7: case MODE_TEMPLATE_8: case MODE_TEMPLATE_9:
-                    case MODE_TEMPLATE_BUF: {
+                    case MODE_CLIPBOARD: {
                         template_t* slot = template_slots + mode - MODE_TEMPLATE_1;
                         if (cursor_x <= j && j < cursor_x + slot->width &&
                             cursor_y <= i && i < cursor_y + slot->height) {
@@ -844,13 +846,13 @@ restart: /* Initialization of fields */
                 /* Edit mode */
                 case MODE_CURSOR:
                     /*  */ if (key == '0' && template_slots[9].array) {
-                        PUT_BAR_TEMPLATE_BUF; mode = MODE_TEMPLATE_BUF;
+                        mode = MODE_CLIPBOARD; PUT_BAR_CLIPBOARD;
                         cursor_x = min(cursor_x,  width - template_slots[9]. width);
                         cursor_y = min(cursor_y, height - template_slots[9].height);
                     } else if ('1' <= key && key <= '9') {
                         ulong index = key - '1';
                         if (template_slots[index].array) {
-                            PUT_BAR_TEMPLATE; mode = MODE_TEMPLATE_1 + index;
+                            mode = MODE_TEMPLATE_1 + index; PUT_BAR_TEMPLATE;
                             cursor_x = min(cursor_x,  width - template_slots[index]. width);
                             cursor_y = min(cursor_y, height - template_slots[index].height);
                         }
@@ -938,7 +940,7 @@ restart: /* Initialization of fields */
                 case MODE_TEMPLATE_1: case MODE_TEMPLATE_2: case MODE_TEMPLATE_3:
                 case MODE_TEMPLATE_4: case MODE_TEMPLATE_5: case MODE_TEMPLATE_6:
                 case MODE_TEMPLATE_7: case MODE_TEMPLATE_8: case MODE_TEMPLATE_9:
-                case MODE_TEMPLATE_BUF: {
+                case MODE_CLIPBOARD: {
                     template_t* slot = template_slots + mode - MODE_TEMPLATE_1;
                     switch (key) {
                         case 'w': if (0 < cursor_y                    ) { cursor_y -= 1; } break;
@@ -981,7 +983,9 @@ restart: /* Initialization of fields */
                             break;
 
                         case 'e': mode = MODE_CURSOR; PUT_BAR_CURSOR; break;
-                    } break;
+                    }
+                    /**/ if (MODE_TEMPLATE_1 <= mode && mode <= MODE_TEMPLATE_9) PUT_BAR_TEMPLATE;
+                    else if (mode == MODE_CLIPBOARD) PUT_BAR_CLIPBOARD;
                 } break;
             }
         }
