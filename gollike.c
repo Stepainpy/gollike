@@ -162,10 +162,13 @@ typedef unsigned bit32_t;
     "    -i, --indent "ITL"indent"RST"             Sets indent from border for spawning cells" "\n" \
 
 #define HELPMSG_OPTIONS_PT2 \
-    "    -r, --rule "ITL"rule"RST"                 Sets a rule for a cellular automaton, using the format described below"              "\n" \
-    "    -c, --colors "ITL"colors"RST"             Sets palette for drawing cell states, using format described below"                  "\n" \
-    "    -p, --probability "ITL"probability"RST"   Sets the probability as precent of a cell appearing at the beginning and at restart" "\n" \
-    "    -1, -2, ..., -9 "ITL"pattern"RST"|@"ITL"path"RST"   Sets a template in slot #, using format described below"                   "\n" \
+    "    -r, --rule "ITL"rule"RST"                 " \
+        "Sets a rule for a cellular automaton, using the format described below" "\n" \
+    "    -c, --colors "ITL"colors"RST"             " \
+        "Sets palette for drawing cell states, using format described below" "\n" \
+    "    -p, --probability "ITL"probability"RST"   " \
+        "Sets the probability as precent of a cell appearing at the beginning and at restart" "\n" \
+    "    -1, -2, ..., -9 "ITL"pattern"RST"|@"ITL"path"RST"   Sets a template in slot #, using format described below" "\n" \
 
 #define HELPMSG_OPTIONS_PT3 \
     "        --help                      Outputs this message and quit" "\n" \
