@@ -140,29 +140,35 @@ typedef unsigned bit32_t;
  *                                Help message                               *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+#define ESC "\x1b["
+#define RST ESC"0m"
+#define ITL ESC"3m"
+
 #define HELPMSG_NAME \
     "NAME:"                                              "\n" \
     "    gollike - Game of Life like automata simulator" "\n" \
 
 #define HELPMSG_USAGE \
-    "USAGE:"                "\n" \
-    "  $ gollike [OPTIONS]" "\n" \
+    "USAGE:"                                                                              "\n" \
+    "  $ gollike [-a | [-w "ITL"width"RST"] [-h "ITL"height"RST"]] [-i "ITL"indent"RST"]" "\n" \
+    "            [-r "ITL"rule"RST"] [-c "ITL"colors"RST"] [-p "ITL"probability"RST"]"    "\n" \
+    "            [-[1-9] "ITL"pattern"RST" | @"ITL"path"RST"] [--help]"                   "\n" \
 
 #define HELPMSG_OPTIONS_PT1 \
-    "OPTIONS:"                                                                           "\n" \
-    "    -a, --autofit              Sets width and height of field from size of console" "\n" \
-    "    -w, --width  <integer>     Sets width of field"                                 "\n" \
-    "    -h, --height <integer>     Sets height of field"                                "\n" \
-    "    -i, --indent <integer>     Sets indent from border for spawning cells"          "\n" \
+    "OPTIONS:"                                                                                 "\n" \
+    "    -a, --autofit                   Sets width and height of field from size of console"  "\n" \
+    "    -w, --width "ITL"width"RST"               Sets width of field"                        "\n" \
+    "    -h, --height "ITL"height"RST"             Sets height of field"                       "\n" \
+    "    -i, --indent "ITL"indent"RST"             Sets indent from border for spawning cells" "\n" \
 
 #define HELPMSG_OPTIONS_PT2 \
-    "    -r, --rule <string>        Sets a rule for a cellular automaton, using the format described below"   "\n" \
-    "    -c, --colors <string>      Sets palette for drawing cell states, using format described below"       "\n" \
-    "    -p, --probability <1-99>   Sets the probability of a cell appearing at the beginning and at restart" "\n" \
-    "    -1, -2, ..., -9 <string>   Sets a template in slot #, using format described below"                  "\n" \
+    "    -r, --rule "ITL"rule"RST"                 Sets a rule for a cellular automaton, using the format described below"              "\n" \
+    "    -c, --colors "ITL"colors"RST"             Sets palette for drawing cell states, using format described below"                  "\n" \
+    "    -p, --probability "ITL"probability"RST"   Sets the probability as precent of a cell appearing at the beginning and at restart" "\n" \
+    "    -1, -2, ..., -9 "ITL"pattern"RST"|@"ITL"path"RST"   Sets a template in slot #, using format described below"                   "\n" \
 
 #define HELPMSG_OPTIONS_PT3 \
-    "        --help                 Outputs this message and quit" "\n" \
+    "        --help                      Outputs this message and quit" "\n" \
 
 #define HELPMSG_KEYS_COMMON \
     "CONTROL KEYS:"                               "\n" \
@@ -432,8 +438,6 @@ static_assert(DEFAULT_INDENT <= DEFAULT_HEIGHT / 2);
  * survive bits : 000110100          *
  * bsmask (hex) =               6948 *
  * * * * * * * * * * * * * * * * * * */
-
-#define ESC "\x1b["
 
 typedef unsigned char uchar;
 typedef unsigned long ulong;
