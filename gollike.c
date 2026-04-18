@@ -174,14 +174,18 @@ typedef unsigned bit32_t;
     "        --help                      Outputs this message and quit" "\n" \
 
 #define HELPMSG_KEYS_COMMON \
-    "CONTROL KEYS:"                               "\n" \
-    "  All mode:"                                 "\n" \
-    "    Q   Quit from program"                   "\n" \
-    "    E   Switch to edit/simulation mode"      "\n" \
-    "    W   Move the camera/cursor up"           "\n" \
-    "    S   Move the camera/cursor down"         "\n" \
-    "    A   Move the camera/cursor to the left"  "\n" \
-    "    D   Move the camera/cursor to the right" "\n" \
+    "CONTROL KEYS:"                                       "\n" \
+    "  All mode:"                                         "\n" \
+    "    Q   Quit from program"                           "\n" \
+    "    E   Switch to edit/simulation mode"              "\n" \
+    "    W   Move the camera/cursor up"                   "\n" \
+    "    S   Move the camera/cursor down"                 "\n" \
+    "    A   Move the camera/cursor to the left"          "\n" \
+    "    D   Move the camera/cursor to the right"         "\n" \
+    " Sh-W   Move the camera/cursor up 10 step"           "\n" \
+    " Sh-S   Move the camera/cursor down 10 step"         "\n" \
+    " Sh-A   Move the camera/cursor to the left 10 step"  "\n" \
+    " Sh-D   Move the camera/cursor to the right 10 step" "\n" \
 
 #define HELPMSG_KEYS_SIM \
     "  Simulation mode:"                                  "\n" \
@@ -192,27 +196,21 @@ typedef unsigned bit32_t;
     "    F   Save current field (restore after press R)"  "\n" \
     " Sh-F   Erase saved field"                           "\n" \
 
-#define HELPMSG_KEYS_EDIT_PT1 \
-    "  Edit mode:"                                        "\n" \
-    " Sh-W   Move the camera/cursor up 10 step"           "\n" \
-    " Sh-S   Move the camera/cursor down 10 step"         "\n" \
-    " Sh-A   Move the camera/cursor to the left 10 step"  "\n" \
-    " Sh-D   Move the camera/cursor to the right 10 step" "\n" \
-    "    R   Enable/disable rectagular selection"         "\n" \
-    " Sh-C   Clear all field"                             "\n" \
-    " Sh-X   Erase all except selection"                  "\n" \
-
-#define HELPMSG_KEYS_EDIT_PT2 \
-    "    G   Make the cell dead"            "\n" \
-    "    B   Make the cell alive"           "\n" \
-    "    T   Toggle the cell state"         "\n" \
-    "    K   Make cell with value of brush" "\n" \
-    "    J   Decrement brush value"         "\n" \
-    "    L   increment brush value"         "\n" \
-    "    C   Copy selected area to buffer"  "\n" \
-    "    X   Cut selected area to buffer"   "\n" \
-    "    0   Enable template from buffer"   "\n" \
-    "  1-9   Enable template with number #" "\n" \
+#define HELPMSG_KEYS_EDIT \
+    "  Edit mode:"                                "\n" \
+    "    R   Enable/disable rectagular selection" "\n" \
+    " Sh-C   Clear all field"                     "\n" \
+    " Sh-X   Erase all except selection"          "\n" \
+    "    G   Make the cell dead"                  "\n" \
+    "    B   Make the cell alive"                 "\n" \
+    "    T   Toggle the cell state"               "\n" \
+    "    K   Make cell with value of brush"       "\n" \
+    "    J   Decrement brush value"               "\n" \
+    "    L   increment brush value"               "\n" \
+    "    C   Copy selected area to buffer"        "\n" \
+    "    X   Cut selected area to buffer"         "\n" \
+    "    0   Enable template from buffer"         "\n" \
+    "  1-9   Enable template with number #"       "\n" \
 
 #define HELPMSG_KEYS_TEMPLATE \
     "  Template mode:"                                           "\n" \
@@ -487,6 +485,11 @@ void move_to_down (uchar* field, size_t width, size_t heigth);
 void move_to_left (uchar* field, size_t width, size_t heigth);
 void move_to_right(uchar* field, size_t width, size_t heigth);
 
+void move_to_up_by_3    (uchar* field, size_t width, size_t heigth);
+void move_to_down_by_3  (uchar* field, size_t width, size_t heigth);
+void move_to_left_by_10 (uchar* field, size_t width, size_t heigth);
+void move_to_right_by_10(uchar* field, size_t width, size_t heigth);
+
 void flip_horizontally(template_t* tmpl);
 void flip_vertically  (template_t* tmpl);
 void rotate_by_180deg (template_t* tmpl);
@@ -553,8 +556,7 @@ int main(int argc, char** argv) {
             putchar('\n'); fputs(HELPMSG_OPTIONS_PT3         , stdout);
             putchar('\n'); fputs(HELPMSG_KEYS_COMMON         , stdout);
             putchar('\n'); fputs(HELPMSG_KEYS_SIM            , stdout);
-            putchar('\n'); fputs(HELPMSG_KEYS_EDIT_PT1       , stdout);
-                           fputs(HELPMSG_KEYS_EDIT_PT2       , stdout);
+            putchar('\n'); fputs(HELPMSG_KEYS_EDIT           , stdout);
             putchar('\n'); fputs(HELPMSG_KEYS_TEMPLATE       , stdout);
             putchar('\n'); fputs(HELPMSG_RULE_SYNTAX         , stdout);
             putchar('\n'); fputs(HELPMSG_RULE_EXAMPLE        , stdout);
@@ -811,6 +813,21 @@ restart: /* Initialization of fields */
                         case 'a': move_to_left (field, width, height); break;
                         case 'd': move_to_right(field, width, height); break;
 
+                        case 'W':
+                            move_to_up_by_3(field, width, height);
+                            move_to_up_by_3(field, width, height);
+                            move_to_up_by_3(field, width, height);
+                            move_to_up     (field, width, height);
+                            break;
+                        case 'S':
+                            move_to_down_by_3(field, width, height);
+                            move_to_down_by_3(field, width, height);
+                            move_to_down_by_3(field, width, height);
+                            move_to_down     (field, width, height);
+                            break;
+                        case 'A': move_to_left_by_10 (field, width, height); break;
+                        case 'D': move_to_right_by_10(field, width, height); break;
+
                         case 'f': field_is_saved = true; memcpy(saved_field, field, width * height); break;
                         case 'F': field_is_saved = false; break;
 
@@ -897,14 +914,14 @@ restart: /* Initialization of fields */
                 common_CUR_and_RECT:
                     switch (key) {
                         case 'w': if (rect_y < cursor_y    ) { cursor_y -= 1; } break;
-                        case 's': if (cursor_y < height - 1) { cursor_y += 1; } break;
+                        case 's': if (cursor_y + 1 < height) { cursor_y += 1; } break;
                         case 'a': if (rect_x < cursor_x    ) { cursor_x -= 1; } break;
-                        case 'd': if (cursor_x < width  - 1) { cursor_x += 1; } break;
+                        case 'd': if (cursor_x + 1 < width ) { cursor_x += 1; } break;
 
                         case 'W': if (rect_y + 10 <= cursor_y) { cursor_y -= 10; } break;
-                        case 'S': if (cursor_y < height - 10 ) { cursor_y += 10; } break;
+                        case 'S': if (cursor_y + 10 < height ) { cursor_y += 10; } break;
                         case 'A': if (rect_x + 10 <= cursor_x) { cursor_x -= 10; } break;
-                        case 'D': if (cursor_x < width  - 10 ) { cursor_x += 10; } break;
+                        case 'D': if (cursor_x + 10 < width  ) { cursor_x += 10; } break;
 
                         case 'j': if (brush >    0) { brush -= 1; } break;
                         case 'l': if (brush < gens) { brush += 1; } break;
@@ -925,9 +942,14 @@ restart: /* Initialization of fields */
                     template_t* slot = template_slots + mode - MODE_TEMPLATE_1;
                     switch (key) {
                         case 'w': if (0 < cursor_y                    ) { cursor_y -= 1; } break;
-                        case 's': if (cursor_y < height - slot->height) { cursor_y += 1; } break;
+                        case 's': if (cursor_y + slot->height < height) { cursor_y += 1; } break;
                         case 'a': if (0 < cursor_x                    ) { cursor_x -= 1; } break;
-                        case 'd': if (cursor_x <  width - slot-> width) { cursor_x += 1; } break;
+                        case 'd': if (cursor_x + slot->width  < width ) { cursor_x += 1; } break;
+
+                        case 'W': if (10 <= cursor_y                        ) { cursor_y -= 10; } break;
+                        case 'S': if (cursor_y + slot->height + 10 <= height) { cursor_y += 10; } break;
+                        case 'A': if (10 <= cursor_x                        ) { cursor_x -= 10; } break;
+                        case 'D': if (cursor_x + slot->width  + 10 <= width ) { cursor_x += 10; } break;
 
                         case 'f': flip_horizontally(slot); break;
                         case 'F': flip_vertically  (slot); break;
@@ -1277,6 +1299,32 @@ void move_to_right(uchar* field, size_t width, size_t heigth) {
         uchar left = field[width * i];
         memmove(field + width * i, field + width * i + 1, width - 1);
         field[width * i + width - 1] = left;
+    }
+}
+
+void move_to_up_by_3(uchar* field, size_t width, size_t heigth) {
+    memmove(field + width * 3, field, width * heigth);
+    memcpy(field, field + width * heigth, width * 3);
+}
+
+void move_to_down_by_3(uchar* field, size_t width, size_t heigth) {
+    memcpy(field + width * heigth, field, width * 3);
+    memmove(field, field + width * 3, width * heigth);
+}
+
+void move_to_left_by_10(uchar* field, size_t width, size_t heigth) {
+    size_t i; for (i = 0; i < heigth; i++) {
+        uchar right[10]; memcpy(right, field + width * i + width - 10, 10);
+        memmove(field + width * i + 10, field + width * i, width - 10);
+        memcpy(field + width * i, right, 10);
+    }
+}
+
+void move_to_right_by_10(uchar* field, size_t width, size_t heigth) {
+    size_t i; for (i = 0; i < heigth; i++) {
+        uchar left[10]; memcpy(left, field + width * i, 10);
+        memmove(field + width * i, field + width * i + 10, width - 10);
+        memcpy(field + width * i + width - 10, left, 10);
     }
 }
 
