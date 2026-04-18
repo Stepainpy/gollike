@@ -1089,6 +1089,68 @@ void normalization_rule(char* rule, ulong mask, uchar gens) {
         *rule = '\0';
 }
 
+static int decode_rle(template_t* tmpl, ulong* x, ulong* y, const char* line, uchar gens) {
+    char* end; ulong len, gen;
+    for (; *line != '\n'; line++) {
+        len = strtoul(line, &end, 10);
+        if (end != line) {
+            if (len == 0) error_msg("zero count for tag in RLE");
+            line = end;
+        } else
+            len = 1;
+
+        while (*line == ' ' || *line == '\t') ++line;
+
+        if (*line == '.') {
+            gen = strtoul(++line, &end, 10);
+            if (end != line) {
+                if (gen == 0) error_msg("zero value for generation of tag in RLE");
+                if (gen > gens) error_msg("too high value for generation of tag");
+                line = end;
+            } else
+                error_msg("no value for generation of tag");
+        } else
+            gen = 0;
+
+        while (*line == ' ' || *line == '\t') ++line;
+
+        switch (*line) {
+            case 'b': case 'o':
+                if (gen) error_msg("genaration value for tag 'b' and 'o'");
+                if (*x + len > tmpl->width)
+                    error_msg("the tag count is too high");
+                memset(tmpl->array + tmpl->width * *y + *x,
+                    *line == 'o' ? gens : 0, len); *x += len;
+            break;
+
+            case 'g':
+                if (!gen) error_msg("zero value of genaration value in tag 'g'");
+                if (*x + len > tmpl->width)
+                    error_msg("the tag count is too high");
+                memset(tmpl->array + tmpl->width * *y + *x, gen, len); *x += len;
+            break;
+
+            case '$':
+                if (*y + len > tmpl->height)
+                    error_msg("the tag count is too high");
+                *y += len; *x = 0;
+            break;
+
+            case '!':
+                if (line[1] != '\0')
+                    error_msgf("expect end of RLE, but got '%c'", line[1]);
+                return 0;
+
+            case '\0': error_msg("unexpected end of RLE");
+            default: error_msgf("unexpected tag '%c' in RLE", *line);
+        }
+    }
+
+    return +1;
+error:
+    return -1;
+}
+
 static template_t parse_rle_file(const char* path, uchar gens, ulong width, ulong height) {
     template_t new = {0}; ulong x = 0, y = 0;
     FILE* file; char line[256]; int scanned;
@@ -1096,14 +1158,14 @@ static template_t parse_rle_file(const char* path, uchar gens, ulong width, ulon
     file = fopen(path, "r");
     if (!file) error_msgf("couldn't open file '%s'", path);
 
-    while (fgets(line, sizeof line, file)) {
+    while (fgets(line, sizeof line, file))
         if (line[0] == '#') {
             if (strrchr(line, '\n') == NULL)
-                error_msg("very long comment");
+                error_msg("very long comment line");
             continue;
         } else
             break;
-    }
+
     scanned = sscanf(line, "x = %lu , y = %lu , "
         "rule = %*"stringify(MAX_RULE_LENGTH)"s", &new.width, &new.height);
     if (scanned != 2) error_msg("couldn't read x-y-rule info");
@@ -1118,66 +1180,11 @@ static template_t parse_rle_file(const char* path, uchar gens, ulong width, ulon
     memset(new.array, 0, new.width * new.height);
 
     while (fgets(line, sizeof line, file)) {
-        const char* rle; char* end;
-        for (rle = line; *rle != '\n'; rle++) {
-            ulong len, gen = 0;
-
-            len = strtoul(rle, &end, 10);
-            if (end != rle) {
-                if (len == 0) error_msg("zero count for tag in rle");
-            } else
-                len = 1;
-            rle = end;
-
-            if (*rle == '.') { ++rle;
-                gen = strtoul(rle, &end, 10);
-                if (end != rle) {
-                    if (gen == 0) error_msg("zero value for generation of tag in rle");
-                    if (gen > gens) error_msg("too high value for generation of tag");
-                } else
-                    error_msg("no value for generation of tag");
-                rle = end;
-            }
-
-            switch (*rle) {
-                case 'b': case 'o':
-                    if (gen) error_msg("genaration value for tag 'b' and 'o'");
-                    if (x + len > new.width)
-                        error_msg("the tag count is too high");
-                    memset(new.array + new.width * y + x, *rle == 'o' ? gens : 0, len);
-                    x += len;
-                break;
-
-                case 'g':
-                    if (!gen) error_msg("zero value of genaration value in tag 'g'");
-                    if (x + len > new.width)
-                        error_msg("the tag count is too high");
-                    memset(new.array + new.width * y + x, gen, len);
-                    x += len;
-                break;
-
-                case '$':
-                    if (y + len > new.height)
-                        error_msg("the tag count is too high");
-                    y += len; x = 0;
-                break;
-
-                case '!':
-                    if (rle[1] != '\0')
-                        error_msgf("expect end of RLE, but got '%c'", rle[1]);
-                    goto exit;
-                break;
-
-                case  ' ': case '\r': case '\n':
-                case '\t': case '\v': case '\f':
-                    /* skip whitespaces */
-                break;
-
-                case '\0': error_msg("unexpected end of RLE");
-                default: error_msgf("unexpected tag '%c' in rle", *rle);
-            }
-        }
+        int rc = decode_rle(&new, &x, &y, line, gens);
+        if (rc == 0) goto exit;
+        if (rc <  0) goto error;
     }
+    error_msg("unexpected end of file");
 
 exit:
     fclose(file);
@@ -1190,7 +1197,7 @@ error:
 }
 
 template_t parse_rle(const char* rle, uchar gens, ulong width, ulong height) {
-    template_t new = {0}; char* end; ulong x = 0, y = 0;
+    template_t new = {0}; char* end; ulong x = 0, y = 0; int rc;
 
     /* "@./rle/pattern.rle" -> parse("./rle/pattern.rle") */
     if (rle[0] == '@') return parse_rle_file(rle + 1, gens, width, height);
@@ -1209,58 +1216,9 @@ template_t parse_rle(const char* rle, uchar gens, ulong width, ulong height) {
     if (!new.array) error_msg("couldn't allocate memory");
     memset(new.array, 0, new.width * new.height);
 
-    for (rle = end + 1; *rle != '!'; rle++) {
-        ulong len, gen = 0;
-
-        len = strtoul(rle, &end, 10);
-        if (end != rle) {
-            if (len == 0) error_msg("zero count for tag in rle");
-        } else
-            len = 1;
-        rle = end;
-
-        if (*rle == '.') { ++rle;
-            gen = strtoul(rle, &end, 10);
-            if (end != rle) {
-                if (gen == 0) error_msg("zero value for generation of tag in rle");
-                if (gen > gens) error_msg("too high value for generation of tag");
-            } else
-                error_msg("no value for generation of tag");
-            rle = end;
-        }
-
-        switch (*rle) {
-            case 'b': case 'o':
-                if (gen) error_msg("genaration value for tag 'b' and 'o'");
-                if (x + len > new.width)
-                    error_msg("the tag count is too high");
-                memset(new.array + new.width * y + x, *rle == 'o' ? gens : 0, len);
-                x += len;
-            break;
-
-            case 'g':
-                if (!gen) error_msg("zero value of genaration value in tag 'g'");
-                if (x + len > new.width)
-                    error_msg("the tag count is too high");
-                memset(new.array + new.width * y + x, gen, len);
-                x += len;
-            break;
-
-            case '$':
-                if (y + len > new.height)
-                    error_msg("the tag count is too high");
-                y += len; x = 0;
-            break;
-
-            case  ' ': case '\r': case '\n':
-            case '\t': case '\v': case '\f':
-                /* skip whitespaces */
-            break;
-
-            case '\0': error_msg("unexpected end of RLE");
-            default: error_msgf("unexpected tag '%c' in rle", *rle);
-        }
-    }
+    rc = decode_rle(&new, &x, &y, end + 1, gens);
+    if (rc < 0) goto error;
+    if (rc > 0) error_msg("multiline RLE in console line");
 
     return new;
 error:
