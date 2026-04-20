@@ -708,8 +708,10 @@ int main(int argc, char** argv) {
     if (!saved_field) error_msg("couldn't allocate memory");
 
     /* Allocation memory for bitset */
-    bitset = malloc(countbit32(width * height));
+    rect_x = min(width, height);
+    bitset = malloc(countbit32(rect_x * rect_x));
     if (!bitset) error_msg("couldn't allocate memory");
+    rect_x = 0;
 
     setup_terminal();
     fputs(ESC"?25l", stdout); /* hide cursor */
