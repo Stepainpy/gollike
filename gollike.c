@@ -152,7 +152,7 @@ typedef unsigned bit32_t;
     "USAGE:"                                                                              "\n" \
     "  $ gollike [-a | [-w "ITL"width"RST"] [-h "ITL"height"RST"]] [-i "ITL"indent"RST"]" "\n" \
     "            [-r "ITL"rule"RST"] [-c "ITL"colors"RST"] [-p "ITL"probability"RST"]"    "\n" \
-    "            [-[1-9] "ITL"pattern"RST" | @"ITL"path"RST"] [--help]"                   "\n" \
+    "            [-[1-9] ("ITL"pattern"RST"|@"ITL"path"RST")] [--help]"                   "\n" \
 
 #define HELPMSG_OPTIONS_PT1 \
     "OPTIONS:"                                                                                 "\n" \
