@@ -487,8 +487,8 @@ void move_to_down (uchar* field, size_t width, size_t heigth);
 void move_to_left (uchar* field, size_t width, size_t heigth);
 void move_to_right(uchar* field, size_t width, size_t heigth);
 
-void move_to_up_by_3    (uchar* field, size_t width, size_t heigth);
-void move_to_down_by_3  (uchar* field, size_t width, size_t heigth);
+void move_to_up_by_10   (uchar* field, size_t width, size_t heigth);
+void move_to_down_by_10 (uchar* field, size_t width, size_t heigth);
 void move_to_left_by_10 (uchar* field, size_t width, size_t heigth);
 void move_to_right_by_10(uchar* field, size_t width, size_t heigth);
 
@@ -702,7 +702,7 @@ int main(int argc, char** argv) {
 
     /* Allocation memory for field */
     /* additional lines for moving of field and correct updating */
-    field = malloc(width * (height + 3));
+    field = malloc(width * (height + 10));
     if (!field) error_msg("couldn't allocate memory");
     saved_field = malloc(width * height);
     if (!saved_field) error_msg("couldn't allocate memory");
@@ -817,18 +817,8 @@ restart: /* Initialization of fields */
                         case 'a': move_to_left (field, width, height); break;
                         case 'd': move_to_right(field, width, height); break;
 
-                        case 'W':
-                            move_to_up_by_3(field, width, height);
-                            move_to_up_by_3(field, width, height);
-                            move_to_up_by_3(field, width, height);
-                            move_to_up     (field, width, height);
-                            break;
-                        case 'S':
-                            move_to_down_by_3(field, width, height);
-                            move_to_down_by_3(field, width, height);
-                            move_to_down_by_3(field, width, height);
-                            move_to_down     (field, width, height);
-                            break;
+                        case 'W': move_to_up_by_10   (field, width, height); break;
+                        case 'S': move_to_down_by_10 (field, width, height); break;
                         case 'A': move_to_left_by_10 (field, width, height); break;
                         case 'D': move_to_right_by_10(field, width, height); break;
 
@@ -1308,14 +1298,14 @@ void move_to_right(uchar* field, size_t width, size_t heigth) {
     }
 }
 
-void move_to_up_by_3(uchar* field, size_t width, size_t heigth) {
-    memmove(field + width * 3, field, width * heigth);
-    memcpy(field, field + width * heigth, width * 3);
+void move_to_up_by_10(uchar* field, size_t width, size_t heigth) {
+    memmove(field + width * 10, field, width * heigth);
+    memcpy(field, field + width * heigth, width * 10);
 }
 
-void move_to_down_by_3(uchar* field, size_t width, size_t heigth) {
-    memcpy(field + width * heigth, field, width * 3);
-    memmove(field, field + width * 3, width * heigth);
+void move_to_down_by_10(uchar* field, size_t width, size_t heigth) {
+    memcpy(field + width * heigth, field, width * 10);
+    memmove(field, field + width * 10, width * heigth);
 }
 
 void move_to_left_by_10(uchar* field, size_t width, size_t heigth) {
